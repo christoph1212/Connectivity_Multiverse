@@ -1,1 +1,6 @@
 Präregistrierung/*
+
+Data/**
+!Data/**/.gitignore
+
+*.asv
