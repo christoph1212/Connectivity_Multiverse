@@ -47,8 +47,10 @@ if ~isfolder(dir_Log)
 end
 
 fprintf('\nPreprocessing %d Files. \n', length(Raw_Files));
-fprintf('InputFolder is %s \nOutputFolder is %s \nLogFolder is %s \n\n', ...
-    dir_Raw , dir_Preproc, dir_Log);
+fprintf(['InputFolder:  %s \n' ...
+         'OutputFolder: %s \n' ...
+         'LogFolder:    %s \n\n'], ...
+         dir_Raw , dir_Preproc, dir_Log);
 
 %% Infos on Triggers and Conditions
 SplitStruct = struct('Trigger', {11, 12 21 22 31 32}, ...
@@ -401,9 +403,9 @@ catch e % If error ocurrs, create ErrorMessage
     ErrorFile = ErrorFile{end};
     fprintf('Problem executing File: %s\n',ErrorFile);
     fprintf('The Error Message is: \n%s \n',ErrorMessage);
+    [~, ErrorFile, ~] = fileparts(ErrorFile);
     ErrorFile = fullfile(dir_Log, ['Error_PreProc_', ErrorFile, '_', Cond_FileName , '.txt']);
-    ErrorFile = strrep(ErrorFile, '.set', '');
-    fid1 = fopen( ErrorFile, 'wt' );
+    fid1 = fopen(ErrorFile, 'wt');
     fprintf(fid1, 'Error-Subject: %s \nThe returned Error Message is: \n\n%s \n', InputFile,  ErrorMessage);
     fclose(fid1);
 
