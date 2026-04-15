@@ -17,7 +17,7 @@ function preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
 %               Default: false
 %
 % Created by: Christoph Frühlinger
-% Last edited: March 2026
+% Last edited: April 2026
 
 %% get from function input
 if nargin < 5
@@ -32,7 +32,7 @@ fprintf(['\n%s\n' ...
 
 %% Prepare List of Files to be Processed
 % get *.set files
-Raw_Files   = dir(fullfile(dir_Raw, '**/*.set'));  
+Raw_Files   = dir(fullfile(dir_Raw, '**/*.set'));
 
 %% Directory where file should be saved
 LogFilename = fullfile(dir_Log, 'All_Logs.csv');
@@ -62,7 +62,11 @@ SplitStruct = struct('Trigger', {11, 12 21 22 31 32}, ...
 
 %% Increase calculation speed by running multiple subjects in parallel
 delete(gcp('nocreate')); % make sure that previous pooling is closed
-parpool("Processes", PREPROC.nWorkers);
+if isempty(PREPROC.nWorkers)
+    parpool("Processes")
+else
+    parpool("Processes", PREPROC.nWorkers);
+end
 
 FileName            = '';
 InputFile           = '';
@@ -73,10 +77,13 @@ fileNames_PreProc   = {Files_PreProc.name};
 nSubs               = length(Raw_Files);
 
 %% Looped preprocessing
+q = parallel.pool.DataQueue;
+afterEach(q, @(msg) fprintf('%s', msg));
+
 parfor i_Sub = 1:nSubs
 
     % Check if Subject has been preprocessed 
-    if sum(contains(fileNames_PreProc,Raw_Files(i_Sub).name)) == 2 && ...
+    if sum(contains(fileNames_PreProc,Raw_Files(i_Sub).name)) == 4 && ...
             ~Overwrite 
         continue
     end
@@ -88,6 +95,8 @@ parfor i_Sub = 1:nSubs
 
     run_preproc_silent(Raw_Files(i_Sub), dir_Preproc, dir_Log, SplitStruct, ...
         FileName, InputFile, Cond_FileName, PREPROC, Overwrite)
+
+    send(q, sprintf('%d/%d preprocessed\n', i_Sub, nSubs));
 
 end
 
@@ -133,7 +142,8 @@ try
 
     fprintf("Standardizing File: %s\n", Raw_File.name)
 
-    evalc("EEG = pop_loadset(InputFile);");
+    %evalc("EEG = pop_loadset(InputFile);");
+    EEG = pop_loadset(InputFile);
 
     %% Step 2: remove unwanted channels
     % AFZ and FPZ are used as grounds in some labs
@@ -148,15 +158,16 @@ try
     
     Common_Channels = Common_Channels(ismember(Common_Channels, ...
         {EEG.chanlocs.labels})); %#ok
-    evalc("EEG = pop_select( EEG, 'channel', Common_Channels);");
+    % evalc("EEG = pop_select( EEG, 'channel', Common_Channels);");
+    EEG = pop_select( EEG, 'channel', Common_Channels);
     
     %% Step 3: rereference all Files to FCZ (differs between Labs)
     if strcmp('CMS/DRL', EEG.Info_Lab.Reference)
-        evalc("EEG = pop_reref(EEG, 'FCZ');");
-
+        % evalc("EEG = pop_reref(EEG, 'FCZ');");
+        EEG = pop_reref(EEG, 'FCZ');
     elseif strcmp('CZ', EEG.Info_Lab.Reference)
-        evalc("EEG = pop_reref(EEG, 'FCZ', 'refloc', struct('labels',{'CZ'}, 'type',{'EEG'}, 'ref', [], 'urchan', [], 'theta',{0}, 'radius',{0},'X',{6.12e-17},'Y',{0},'Z',{1},'sph_theta', {0},'sph_phi',{90},'sph_radius',{1}));");
-
+        % evalc("EEG = pop_reref(EEG, 'FCZ', 'refloc', struct('labels',{'CZ'}, 'type',{'EEG'}, 'ref', [], 'urchan', [], 'theta',{0}, 'radius',{0},'X',{6.12e-17},'Y',{0},'Z',{1},'sph_theta', {0},'sph_phi',{90},'sph_radius',{1}));");
+        EEG = pop_reref(EEG, 'FCZ', 'refloc', struct('labels',{'CZ'}, 'type',{'EEG'}, 'ref', [], 'urchan', [], 'theta',{0}, 'radius',{0},'X',{6.12e-17},'Y',{0},'Z',{1},'sph_theta', {0},'sph_phi',{90},'sph_radius',{1}));
     elseif strcmp('FCZ', EEG.Info_Lab.Reference)
         % do nothing
 
@@ -171,11 +182,14 @@ try
     RefInfo = {EEG.nbchan 'labels' 'FCZ' 'theta' 0 'radius' 0.127 ...
         'X' 0.388 'Y' 0 'Z' 0.922 'sph_theta' 0 'sph_phi' 67.2 ...
         'sph_radius' 1 'type' 'EEG' 'datachan' 0 }; %#ok
-    evalc("EEG = pop_chanedit(EEG, 'append', RefInfo);");
+    % evalc("EEG = pop_chanedit(EEG, 'append', RefInfo);");
+    EEG = pop_chanedit(EEG, 'append', RefInfo);
 
     % Chanlocs without Ref - save chanlocs for interpolation:
-    evalc("EEG_interp = pop_select( EEG, 'chantype','EEG');");
-    evalc("EEG_interp = pop_select( EEG_interp, 'nochannel', {'MASTl', 'MASTr'});");
+    % evalc("EEG_interp = pop_select( EEG, 'chantype','EEG');");
+    % evalc("EEG_interp = pop_select( EEG_interp, 'nochannel', {'MASTl', 'MASTr'});");
+    EEG_interp = pop_select( EEG, 'chantype','EEG');
+    EEG_interp = pop_select( EEG_interp, 'nochannel', {'MASTl', 'MASTr'});
 
     % some datasets miss OZ
     if length(EEG_interp.chanlocs) ~= 58 %#ok
@@ -208,7 +222,8 @@ try
     % Different Sampling Rate per Site
     if PREPROC.Downsample
         new_srate = EEG.srate/2; %#ok
-        evalc("EEG = pop_resample(EEG, new_srate);");
+        % evalc("EEG = pop_resample(EEG, new_srate);");
+        EEG = pop_resample(EEG, new_srate);
     end
 
     %% Step 5: Separate into Conditions
@@ -263,15 +278,19 @@ try
             end
             
             % Select only condition-specific data
-            evalc("EEG = pop_epoch( EEG_Complete, {num2str( Rel_SplitStruct.Trigger(i_cond))}, [0  60], 'epochinfo', 'yes');");
-            evalc("EEG = eeg_epoch2continuous(EEG);");
+            % evalc("EEG = pop_epoch( EEG_Complete, {num2str( Rel_SplitStruct.Trigger(i_cond))}, [0  60], 'epochinfo', 'yes');");
+            % evalc("EEG = eeg_epoch2continuous(EEG);");
+            EEG = pop_epoch( EEG_Complete, {num2str( Rel_SplitStruct.Trigger(i_cond))}, [0  60], 'epochinfo', 'yes');
+            EEG = eeg_epoch2continuous(EEG);
 
             %% Step 6: Filtering
             % High-Pass Filter
-            evalc("EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);");
+            % evalc("EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);");
+            EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);
 
             % Low-Pass Filter
-            evalc("EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);");
+            % evalc("EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);");
+            EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);
 
             %% Step 7: Bad Channels & Artifact Rejection
             % Define Settings based on PREPROC
@@ -300,32 +319,41 @@ try
             end
 
             if PREPROC.BadChans || PREPROC.Artifacts
-                evalc('EEG = clean_artifacts(EEG, args{:});');
+                % evalc('EEG = clean_artifacts(EEG, args{:});');
+                EEG = clean_artifacts(EEG, args{:});
             end
 
             %% Step 8: wICA
             if PREPROC.wICA
-                evalc("[EEG,wIC,A,W,IC] = RELAX_wICA_on_ICLabel_artifacts(EEG, 'extended_infomax_ICA');");
+                % evalc("[EEG,wIC,A,W,IC] = RELAX_wICA_on_ICLabel_artifacts(EEG, 'extended_infomax_ICA');");
+                [EEG,wIC,A,W,IC] = RELAX_wICA_on_ICLabel_artifacts(EEG, 'extended_infomax_ICA');
                 EEG.icaweights = W;
                 EEG.icasphere = eye(size(W,2));
                 EEG.icawinv = A;
-                evalc("EEG = eeg_checkset(EEG, 'ica');");
+                % evalc("EEG = eeg_checkset(EEG, 'ica');");
+                EEG = eeg_checkset(EEG, 'ica');
             end
 
             %% Step 9: Interpolation
-            evalc("EEG = pop_select( EEG, 'chantype','EEG');");
-            evalc("EEG = pop_select( EEG, 'nochannel', {'MASTl', 'MASTr'});");
+            % evalc("EEG = pop_select( EEG, 'chantype','EEG');");
+            EEG = pop_select( EEG, 'chantype','EEG');
+            % evalc("EEG = pop_select( EEG, 'nochannel', {'MASTl', 'MASTr'});");
+            EEG = pop_select( EEG, 'nochannel', {'MASTl', 'MASTr'});
             n_interp = length(EEG_interp.chanlocs) - length(EEG.chanlocs);
-            evalc("EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');");           
-            evalc("EEG = eeg_checkset(EEG);");
+            %evalc("EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');");  
+            EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');
+            % evalc("EEG = eeg_checkset(EEG);");
+            EEG = eeg_checkset(EEG);
 
             %% Step 10: Re-referencing
             if PREPROC.CAV_Reference
-                evalc("EEG = pop_reref(EEG,[],'refloc',struct('labels',{'FCZ'},'type',{'EEG'},'ref', [], 'urchan', [], 'theta',{0},'radius',{0.127},'X',{0.388},'Y',{0},'Z',{0.922},'sph_theta',{0},'sph_phi',{67.2},'sph_radius',{1}, 'sph_theta_besa', [], 'sph_phi_besa', []));");
+                % evalc("EEG = pop_reref(EEG,[],'refloc',struct('labels',{'FCZ'},'type',{'EEG'},'ref', [], 'urchan', [], 'theta',{0},'radius',{0.127},'X',{0.388},'Y',{0},'Z',{0.922},'sph_theta',{0},'sph_phi',{67.2},'sph_radius',{1}, 'sph_theta_besa', [], 'sph_phi_besa', []));");
+                EEG = pop_reref(EEG,[],'refloc',struct('labels',{'FCZ'},'type',{'EEG'},'ref', [], 'urchan', [], 'theta',{0},'radius',{0.127},'X',{0.388},'Y',{0},'Z',{0.922},'sph_theta',{0},'sph_phi',{67.2},'sph_radius',{1}, 'sph_theta_besa', [], 'sph_phi_besa', []));
             end            
 
             %% Step 11: Surface Laplacian
-            evalc("EEG = pop_currentdensity(EEG, 'method', 'finite');");
+            % evalc("EEG = pop_currentdensity(EEG, 'method', 'finite');");
+            EEG = pop_currentdensity(EEG, 'method', 'finite');
 
             %% Step 12: Check Channel Number
             if length(EEG.chanlocs) ~= 59
@@ -333,7 +361,7 @@ try
                 error(msg)
             end
 
-            %% Step 14: Epoching and Saving Data
+            %% Step 13: Epoching and Saving Data
             switch PREPROC.Epoching
                 case 'all'
                     % 6-seconds with 2-seconds overlap
@@ -354,7 +382,7 @@ try
 
             end
 
-            %% Step 15: Log for Quality Assessment
+            %% Step 14: Log for Quality Assessment
             if ~exist('EEG_oAEC','var')
                 EEG_oAEC.trials = NaN;
             end
@@ -363,7 +391,13 @@ try
                 EEG_phase.trials = NaN;
             end
 
-            Log_table = table({Raw_File.name(1:end-4)}, {Cond_FileName}, EEG_oAEC.trials, EEG_phase.trials, EEG.RELAXProcessing_wICA.Proportion_artifactICs_reduced_by_wICA, n_interp, ...
+            if isfield(EEG, 'RELAXProcessing_wICA')
+                prop_reduced_ICs = EEG.RELAXProcessing_wICA.Proportion_artifactICs_reduced_by_wICA;
+            else
+                prop_reduced_ICs = NaN;
+            end
+
+            Log_table = table({Raw_File.name(1:end-4)}, {Cond_FileName}, EEG_oAEC.trials, EEG_phase.trials, prop_reduced_ICs, n_interp, ...
                 'VariableNames', {'File Name', 'Condition', 'oAEC Epochs', 'Phase Epochs', 'Prop. Reduced ICs', 'Interpolated Channels'});
             
             ID = strsplit(Raw_File.name, '_');
@@ -399,8 +433,8 @@ catch e % If error ocurrs, create ErrorMessage
     fprintf('***Error in File: %s;\n%s.\n', InputFile, ErrorMessage);
 
     % make error log
-    ErrorFile = strsplit(InputFile, "\");
-    ErrorFile = ErrorFile{end};
+    [~, ErrorFile, ext] = fileparts(InputFile);
+    ErrorFile = [ErrorFile ext];
     fprintf('Problem executing File: %s\n',ErrorFile);
     fprintf('The Error Message is: \n%s \n',ErrorMessage);
     [~, ErrorFile, ~] = fileparts(ErrorFile);
