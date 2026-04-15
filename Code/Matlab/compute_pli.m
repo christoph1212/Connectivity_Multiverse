@@ -1,7 +1,7 @@
  function adj_matrix = compute_pli(EEG, current_band, freqband)
 %% Calculate Phase Lag Index
 %
-% Formula: PLI = |E[sign(Im(Sxy))]|, with Sxy as Cross-Spectrum Density
+% Formula: PLI = |E[sign(Im(Sxy))]|, with Sxy as Cross-Spectrum Density [1]
 %
 % Input: 
 %    (1): EEG           - Preprocessed EEG file
@@ -13,6 +13,11 @@
 %
 % Created by: Christoph Frühlinger
 % Last edited: April 2026
+%
+% [1] Stam, C. J., Nolte, G. & Daffertshofer, A. (2007). Phase lag index: 
+% Assessment of functional connectivity from multi channel EEG and MEG with 
+% diminished bias from common sources. Human Brain Mapping, 28(11), 
+% 1178–1193. https://doi.org/10.1002/hbm.20346
 
 %% Print Output
 file_info = strsplit(EEG.filename, '_');
@@ -24,21 +29,16 @@ fprintf("%s (%s) %s-%s %s %s:\n    Measure: PLI\n    Band:    %s\n\n", file_info
 [nchans, npnts, ntrials] = size(EEG.data);
 
 %% Frequency Band
-freqs   = freqband(1):1:freqband(2);
+freqs   = linspace(freqband(1), freqband(2), 10);
 nfreqs  = length(freqs);
 
 % Define Number of Cycles
 switch current_band
-    case 'delta'
-        nCycles = 4;
-    case 'theta'
-        nCycles = 5;
-    case 'alpha1'
-        nCycles = 6;
-    case 'alpha2'
-        nCycles = 7;
-    case 'beta'
-        nCycles = 10;
+    case 'delta',  nCycles = 4;
+    case 'theta',  nCycles = 5;
+    case 'alpha1', nCycles = 6;
+    case 'alpha2', nCycles = 7;
+    case 'beta',   nCycles = 10;
 end
 
 %% FFT params
@@ -48,11 +48,38 @@ half_wavN = floor((length(time)-1)/2);
 nData = npnts * ntrials;
 nConv = nWave + nData - 1;
 
+%% Data-FFT
 dataX = zeros(nchans, nConv);
-
-%% FFT
 for ch = 1:nchans
     dataX(ch,:) = fft(reshape(EEG.data(ch,:,:),1,[]), nConv);
+end
+
+%% Wavelet-FFT
+waveletX_all = zeros(nfreqs,nConv);
+for fi = 1:nfreqs
+
+    cent_freq = freqs(fi);
+
+    % Wavelet
+    s = nCycles/(2*pi*cent_freq);
+    wavelet = exp(2*1i*pi*cent_freq.*time) .* exp(-time.^2./(2*s^2));
+
+    % FFT of Wavelet and Normalization
+    waveletX = fft(wavelet, nConv);
+    waveletX_all(fi,:) = waveletX ./ max(abs(waveletX));
+
+end
+
+%% Analytic Signal for all Channels
+AS = zeros(nfreqs, nchans, npnts, ntrials);
+for fi = 1:nfreqs
+    for ch = 1:nchans
+
+        tmp              = ifft(waveletX_all(fi,:) .* dataX(ch,:), nConv);
+        tmp              = tmp(half_wavN+1:half_wavN+nData);
+        AS(fi, ch, :, :) = reshape(tmp, npnts, ntrials);
+
+    end
 end
 
 %% Initialize Connectivity Matrix
@@ -66,30 +93,10 @@ for i = 1:nchans
         pli_core_all = zeros(1, nfreqs);
 
         % Loop Through Frequencies
-        for fi = 1:nfreqs
-
-            cent_freq = freqs(fi);
-
-            % Wavelet
-            s = nCycles/(2*pi*cent_freq);
-            wavelet = exp(2*1i*pi*cent_freq.*time) .* exp(-time.^2./(2*s^2));
-
-            % FFT of Wavelet and Normalization
-            waveletX = fft(wavelet, nConv);
-            waveletX = waveletX ./ max(abs(waveletX));
-
-            % Channel i
-            as1 = ifft(waveletX .* dataX(i,:), nConv);
-            as1 = as1(half_wavN+1:half_wavN+nData);
-            as1 = reshape(as1, npnts, ntrials);
-
-            % Channel j
-            as2 = ifft(waveletX .* dataX(j,:), nConv);
-            as2 = as2(half_wavN+1:half_wavN+nData);
-            as2 = reshape(as2, npnts, ntrials);
+        for fi = 1:nfreqs            
 
             % Cross-Spectrum Density
-            csd = as1 .* conj(as2);
+            csd = squeeze(AS(fi,i,:,:)) .* conj(squeeze(AS(fi,j,:,:)));
 
             % PLI - average over time and trials
             pli_core_all(fi) = abs(mean(sign(imag(csd)), "all", "omitnan"));
@@ -104,8 +111,5 @@ for i = 1:nchans
 
     end
 end
-
-% set diagonal to 0
-adj_matrix(1:nchans+1:end) = 0; 
 
 end

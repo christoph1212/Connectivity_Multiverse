@@ -39,7 +39,7 @@ fprintf(['\n%s\n' ...
 Preproc_Files   = dir(fullfile(dir_Preproc, '**/*.set'));  
 
 %% Directory where file should be saved
-dir_Log     = fullfile(dir_Log, 'Connectivity');
+dir_Log         = fullfile(dir_Log, 'Connectivity');
 
 if ~isfolder(dir_Connect)
     mkdir(dir_Connect)
@@ -57,9 +57,13 @@ fprintf(['InputFolder:  %s \n' ...
 
 %% Increase calculation speed by running multiple subjects in parallel
 delete(gcp('nocreate')); % make sure that previous pooling is closed
-parpool("Processes", CONNECTIVITY.nWorkers);
+if isempty(CONNECTIVITY.nWorkers)
+    parpool("Processes")
+else
+    parpool("Processes", CONNECTIVITY.nWorkers);
+end
 
-nFiles              = length(Preproc_Files);
+nFiles          = length(Preproc_Files);
 
 %% Morlet-Wavelet Decomposition
 freqbands_struct = struct(...
@@ -70,6 +74,7 @@ freqbands_struct = struct(...
     'beta',     [13 30] ...
     );
 
+%% Loop over Files
 q = parallel.pool.DataQueue;
 afterEach(q, @(msg) fprintf('%s', msg));
 

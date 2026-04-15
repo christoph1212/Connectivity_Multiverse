@@ -2,8 +2,10 @@ function adj_matrix = compute_imcoh(EEG, current_band, freqband)
 %% Calculate Imaginary Coherence
 % 
 %                        Im(E[Sxy])
-% Formula: imcoh = ____________________, with Sxy as Cross-Spectrum Density
-%                  sqrt(E[Sxx] * E[Syy])
+% Formula: imcoh = ____________________
+%                  sqrt(E[Sxx] * E[Syy]), with Sxy as Cross-Spectrum
+%                                         Density, and Sxx and Syy as 
+%                                         Auto-Spectrum Densities [1]
 %
 % Input: 
 %    (1): EEG           - Preprocessed EEG file
@@ -15,6 +17,11 @@ function adj_matrix = compute_imcoh(EEG, current_band, freqband)
 %
 % Created by: Christoph Frühlinger
 % Last edited: April 2026
+%
+% [1] Nolte, G., Bai, O., Wheaton, L., Mari, Z., Vorbach, S. & Hallett, M.
+% (2004). Identifying true brain interaction from EEG data using the 
+% imaginary part of coherency. Clinical Neurophysiology, 115(10), 
+% 2292–2307. https://doi.org/10.1016/j.clinph.2004.04.029
 
 %% Print Output
 file_info = strsplit(EEG.filename, '_');
@@ -28,21 +35,16 @@ npnts   = size(EEG.data, 2);
 ntrials = size(EEG.data, 3);
 
 %% Frequency Band
-freqs   = freqband(1):1:freqband(2);
+freqs   = linspace(freqband(1), freqband(2), 10);
 nfreqs  = length(freqs);
 
 % Define Number of Cycles
 switch current_band
-    case 'delta'
-        nCycles = 4;
-    case 'theta'
-        nCycles = 5;
-    case 'alpha1'
-        nCycles = 6;
-    case 'alpha2'
-        nCycles = 7;
-    case 'beta'
-        nCycles = 10;
+    case 'delta',  nCycles = 4;
+    case 'theta',  nCycles = 5;
+    case 'alpha1', nCycles = 6;
+    case 'alpha2', nCycles = 7;
+    case 'beta',   nCycles = 10;
 end
 
 %% FFT params
@@ -52,11 +54,38 @@ half_wavN = floor((length(time)-1)/2);
 nData = npnts * ntrials;
 nConv = nWave + nData - 1;
 
+%% Data-FFT
 dataX = zeros(nchans, nConv);
-
-%% FFT
 for ch = 1:nchans
     dataX(ch,:) = fft(reshape(EEG.data(ch,:,:),1,[]), nConv);
+end
+
+%% Wavelet-FFT
+waveletX_all = zeros(nfreqs,nConv);
+for fi = 1:nfreqs
+
+    cent_freq = freqs(fi);
+
+    % Wavelet
+    s = nCycles/(2*pi*cent_freq);
+    wavelet = exp(2*1i*pi*cent_freq.*time) .* exp(-time.^2./(2*s^2));
+
+    % FFT of Wavelet and Normalization
+    waveletX = fft(wavelet, nConv);
+    waveletX_all(fi,:) = waveletX ./ max(abs(waveletX));
+
+end
+
+%% Analytic Signal for all Channels
+AS = zeros(nfreqs, nchans, npnts, ntrials);
+for fi = 1:nfreqs
+    for ch = 1:nchans
+
+        tmp              = ifft(waveletX_all(fi,:) .* dataX(ch,:), nConv);
+        tmp              = tmp(half_wavN+1:half_wavN+nData);
+        AS(fi, ch, :, :) = reshape(tmp, npnts, ntrials);
+
+    end
 end
 
 %% Initialize Connectivity Matrix
@@ -70,39 +99,19 @@ for i = 1:nchans
         imcoh_core_all = zeros(1, nfreqs);
 
         % Loop Through Frequencies
-        for fi = 1:nfreqs
+        for fi = 1:nfreqs            
 
-            cent_freq = freqs(fi);
-
-            % Wavelet
-            s = nCycles/(2*pi*cent_freq);
-            wavelet = exp(2*1i*pi*cent_freq.*time) .* exp(-time.^2./(2*s^2));
-
-            % FFT of Wavelet and Normalization
-            waveletX = fft(wavelet, nConv);
-            waveletX = waveletX ./ max(abs(waveletX));
-
-            % Channel i
-            as1 = ifft(waveletX .* dataX(i,:), nConv);
-            as1 = as1(half_wavN+1:half_wavN+nData);
-            as1 = reshape(as1, npnts, ntrials);
-
-            % Channel j
-            as2 = ifft(waveletX .* dataX(j,:), nConv);
-            as2 = as2(half_wavN+1:half_wavN+nData);
-            as2 = reshape(as2, npnts, ntrials);
-
-            % Cross-Spectrum Density
-            csd = as1 .* conj(as2);
-            asd1 = as1 .* conj(as1);
-            asd2 = as2 .* conj(as2);
+            % Cross- & Auto-Spectrum Density
+            csd  = squeeze(AS(fi,i,:,:)) .* conj(squeeze(AS(fi,j,:,:)));
+            asd1 = squeeze(AS(fi,i,:,:)) .* conj(squeeze(AS(fi,i,:,:)));
+            asd2 = squeeze(AS(fi,j,:,:)) .* conj(squeeze(AS(fi,j,:,:)));
 
             % imCoh
             num = imag(mean(csd(:)));
             den = sqrt(mean(asd1(:)) .* mean(asd2(:)));
 
             if den ~= 0
-                imcoh_core_all(fi) = num / den;
+                imcoh_core_all(fi) = abs(num / den);
             else
                 imcoh_core_all(fi) = NaN;
             end
@@ -110,15 +119,12 @@ for i = 1:nchans
         end
 
         % Mean imCoh
-        imcoh_final = abs(mean(imcoh_core_all(:), "omitnan"));
+        imcoh_final = mean(imcoh_core_all(:), "omitnan");
 
         adj_matrix(i,j) = imcoh_final;
         adj_matrix(j,i) = imcoh_final; % mirror
 
     end
 end
-
-% set diagonal to 0
-adj_matrix(1:nchans+1:end) = 0; 
 
 end

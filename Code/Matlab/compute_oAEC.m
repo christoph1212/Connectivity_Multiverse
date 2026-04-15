@@ -1,9 +1,9 @@
  function adj_matrix = compute_oAEC(EEG, current_band, freqband)
 %% Calculate orthogonalized Amplitude Envelope Correlation
 %
-% Formula: oAEC = E[Y⊥X + X⊥Y], with
+% Formula: oAEC = E[corr(|X|,|Y⊥X|) + corr(|Y|,|X⊥Y|)], with
 %
-% Y⊥X = Im(Y * conj(X) / |X|) and vice versa for X⊥Y
+% Y⊥X = Im(Y * conj(X) / |X|) and vice versa for X⊥Y [1,2]
 %
 % Input: 
 %    (1): EEG           - Preprocessed EEG file
@@ -15,6 +15,19 @@
 %
 % Created by: Christoph Frühlinger
 % Last edited: April 2026
+%
+% [1] Hipp, J. F., Hawellek, D. J., Corbetta, M., Siegel, M. & Engel, A. K.
+% (2012). Large-scale cortical correlation structure of spontaneous 
+% oscillatory activity. Nature Neuroscience, 15(6), 884–890. 
+% https://doi.org/10.1038/nn.3101
+%
+% [2] Khan, S., Hashmi, J. A., Mamashli, F., Michmizos, K., Kitzbichler, M.
+% G., Bharadwaj, H., Bekhti, Y., Ganesan, S., Garel, K. A., 
+% Whitfield-Gabrieli, S., Gollub, R. L., Kong, J., Vaina, L. M., Rana, K. 
+% D., Stufflebeam, S. S., Hämäläinen, M. S. & Kenet, T. (2018). Maturation 
+% Trajectories of Cortical Resting-State Networks Depend on the Mediating 
+% Frequency Band. NeuroImage, 174, 57–68. 
+% https://doi.org/10.1016/j.neuroimage.2018.02.018
 
 %% Print Output
 file_info = strsplit(EEG.filename, '_');
@@ -26,21 +39,16 @@ fprintf("%s (%s) %s-%s %s %s:\n    Measure: oAEC\n    Band:    %s\n\n", file_inf
 [nchans, npnts, ntrials] = size(EEG.data);
 
 %% Frequency Band
-freqs   = freqband(1):1:freqband(2);
+freqs   = linspace(freqband(1), freqband(2), 10);
 nfreqs  = length(freqs);
 
 % Define Number of Cycles
 switch current_band
-    case 'delta'
-        nCycles = 4;
-    case 'theta'
-        nCycles = 5;
-    case 'alpha1'
-        nCycles = 6;
-    case 'alpha2'
-        nCycles = 7;
-    case 'beta'
-        nCycles = 10;
+    case 'delta',  nCycles = 4;
+    case 'theta',  nCycles = 5;
+    case 'alpha1', nCycles = 6;
+    case 'alpha2', nCycles = 7;
+    case 'beta',   nCycles = 10;
 end
 
 %% FFT params
@@ -50,11 +58,38 @@ half_wavN = floor((length(time)-1)/2);
 nData = npnts * ntrials;
 nConv = nWave + nData - 1;
 
+%% Data-FFT
 dataX = zeros(nchans, nConv);
-
-%% FFT
 for ch = 1:nchans
     dataX(ch,:) = fft(reshape(EEG.data(ch,:,:),1,[]), nConv);
+end
+
+%% Wavelet-FFT
+waveletX_all = zeros(nfreqs,nConv);
+for fi = 1:nfreqs
+
+    cent_freq = freqs(fi);
+
+    % Wavelet
+    s = nCycles/(2*pi*cent_freq);
+    wavelet = exp(2*1i*pi*cent_freq.*time) .* exp(-time.^2./(2*s^2));
+
+    % FFT of Wavelet and Normalization
+    waveletX = fft(wavelet, nConv);
+    waveletX_all(fi,:) = waveletX ./ max(abs(waveletX));
+
+end
+
+%% Analytic Signal for all Channels
+AS = zeros(nfreqs, nchans, npnts, ntrials);
+for fi = 1:nfreqs
+    for ch = 1:nchans
+
+        tmp              = ifft(waveletX_all(fi,:) .* dataX(ch,:), nConv);
+        tmp              = tmp(half_wavN+1:half_wavN+nData);
+        AS(fi, ch, :, :) = reshape(tmp, npnts, ntrials);
+
+    end
 end
 
 %% Initialize Connectivity Matrix
@@ -64,31 +99,14 @@ adj_matrix = zeros(nchans, nchans);
 for i = 1:nchans
     for j = i+1:nchans
 
-        % Initialize PLI storage
+        % Initialize oAEC storage
         oaec_all = zeros(1, nfreqs);
 
         % Loop Through Frequencies
         for fi = 1:nfreqs
 
-            cent_freq = freqs(fi);
-
-            % Wavelet
-            s = nCycles/(2*pi*cent_freq);
-            wavelet = exp(2*1i*pi*cent_freq.*time) .* exp(-time.^2./(2*s^2));
-
-            % FFT of Wavelet and Normalization
-            waveletX = fft(wavelet, nConv);
-            waveletX = waveletX ./ max(abs(waveletX));
-
-            % Channel i
-            as1 = ifft(waveletX .* dataX(i,:), nConv);
-            as1 = as1(half_wavN+1:half_wavN+nData);
-            as1 = reshape(as1, npnts, ntrials);
-
-            % Channel j
-            as2 = ifft(waveletX .* dataX(j,:), nConv);
-            as2 = as2(half_wavN+1:half_wavN+nData);
-            as2 = reshape(as2, npnts, ntrials);
+            as1 = squeeze(AS(fi,i,:,:));
+            as2 = squeeze(AS(fi,j,:,:));
 
             % oAEC
             y_ortho_x = imag(as2 .* (conj(as1)./(abs(as1) + eps)));
@@ -101,12 +119,6 @@ for i = 1:nchans
             env_yx = abs(y_ortho_x);
             env_xy = abs(x_ortho_y);
 
-            % Remove potential DC bias (important for correlation validity)
-            env1 = env1 - mean(env1, "all");
-            env2 = env2 - mean(env2, "all");
-            env_yx = env_yx - mean(env_yx, "all");
-            env_xy = env_xy - mean(env_xy, "all");
-
             % Pearson correlation (vectorized)
             r1 = corr(env1(:), env_yx(:), 'Rows','complete');
             r2 = corr(env2(:), env_xy(:), 'Rows','complete');
@@ -115,7 +127,7 @@ for i = 1:nchans
 
         end
 
-        % Mean PLI
+        % Mean oAEC
         oaec_final = mean(oaec_all, "omitnan");
 
         adj_matrix(i,j) = oaec_final;
@@ -123,8 +135,5 @@ for i = 1:nchans
 
     end
 end
-
-% set diagonal to 0
-adj_matrix(1:nchans+1:end) = 0; 
 
 end
