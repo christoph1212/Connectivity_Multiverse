@@ -38,7 +38,7 @@ eeglab nogui
 clc
 
 % Check for necessary Plugins
-plugins             = ["RELAX", "scd"];
+plugins             = ["RELAX", "scd", "Fieldtrip-lite"];
 
 for i = 1:numel(plugins)
     if ~ismember(plugins(i), string({PLUGINLIST.plugin}))
@@ -60,7 +60,7 @@ fprintf(['%s\n' ...
 
 %% Analysis Configurations
 PREPROC = struct(...
-    'nWorkers',         2, ...      % Number of Workers for parfor - use [] for max
+    'nWorkers',         [], ...      % Number of Workers for parfor - use [] for max
     'Downsample',       true, ...   % Downsample to SR/2
     'HP_Filter',        0.1, ...    % High-Pass Filter
     'LP_Filter',        30, ...     % Low-Pass Filter
@@ -74,7 +74,7 @@ PREPROC = struct(...
 );
 
 CONNECTIVITY = struct(...
-    'nWorkers',         2,    ...   % Number of Workers for parfor
+    'nWorkers',         2,    ...   % Number of Workers for parfor - use [] for max
     'Bands',            'all', ...  % Frequency Bands: 'delta', 'theta', 'alpha1', 'alpha2', 'beta', or 'all'
     'Measures',         'all'  ...  % Connectivity Measures: 'imcoh', 'wpli', 'pli', 'pcoh', 'oaec', or 'all'
 );
@@ -96,7 +96,7 @@ fprintf([repmat('=', 1, 100), '\n']);
 % preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
 
 %% Connectivity Multiverse
-connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
+% connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
 
 %% Thresholding Multiverse
 % thresholding_multiv(dir_Connect, dir_Log, ..., THRESHOLD, Overwrite)
