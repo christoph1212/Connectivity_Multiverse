@@ -3,6 +3,7 @@ Präregistrierung/*
 Code/Matlab/eeglab2026.0.0/*
 
 Data/**
-!Data/**/.gitignore
+!Data/RawData/
+!Data/RawData/.gitignore
 
 *.asv
