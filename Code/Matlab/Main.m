@@ -60,17 +60,18 @@ fprintf(['%s\n' ...
 
 %% Analysis Configurations
 PREPROC = struct(...
-    'nWorkers',         [], ...      % Number of Workers for parfor - use [] for max
+    'nWorkers',         [], ...     % Number of Workers for parfor - use [] for max
     'Downsample',       true, ...   % Downsample to SR/2
     'HP_Filter',        0.1, ...    % High-Pass Filter
     'LP_Filter',        30, ...     % Low-Pass Filter
     'BadChans',         true, ...   % Bad Channel Detection
     'Artifacts',        true, ...   % Artifact Rejection
     'wICA',             true, ...   % Wavelet-Enhanced ICA
-    'Interpolate',      true, ...   % Interpolate Bad Channels
+    'Interpolate',      true, ...   % Interpolate Bad Channels    
     'CAV_Reference',    true, ...   % Re-reference to Common Average
     'Surf_Lap',         true, ...   % Apply Surface Laplacian
-    'Epoching',         'all' ...   % Epoch Data for 'oAEC', 'phase' Based Measures or 'all' 
+    'Epoching',         'all', ...  % Epoch Data for 'oAEC', 'phase' Based Measures or 'all' 
+    'Artifacts2',       true ...    % Post Epoching Artifact Rejection
 );
 
 CONNECTIVITY = struct(...

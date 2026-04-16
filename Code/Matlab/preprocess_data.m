@@ -61,12 +61,12 @@ SplitStruct = struct('Trigger', {11, 12 21 22 31 32}, ...
     });
 
 %% Increase calculation speed by running multiple subjects in parallel
-delete(gcp('nocreate')); % make sure that previous pooling is closed
-if isempty(PREPROC.nWorkers)
-    parpool("Processes")
-else
-    parpool("Processes", PREPROC.nWorkers);
-end
+% delete(gcp('nocreate')); % make sure that previous pooling is closed
+% if isempty(PREPROC.nWorkers)
+%     parpool("Processes")
+% else
+%     parpool("Processes", PREPROC.nWorkers);
+% end
 
 FileName            = '';
 InputFile           = '';
@@ -80,7 +80,7 @@ nSubs               = length(Raw_Files);
 q = parallel.pool.DataQueue;
 afterEach(q, @(msg) fprintf('%s', msg));
 
-parfor i_Sub = 1:nSubs
+for i_Sub = 1%:nSubs
 
     % Check if Subject has been preprocessed 
     if sum(contains(fileNames_PreProc,Raw_Files(i_Sub).name)) == 4 && ...
@@ -327,11 +327,10 @@ try
             if PREPROC.wICA
                 % evalc("[EEG,wIC,A,W,IC] = RELAX_wICA_on_ICLabel_artifacts(EEG, 'extended_infomax_ICA');");
                 [EEG,wIC,A,W,IC] = RELAX_wICA_on_ICLabel_artifacts(EEG, 'extended_infomax_ICA');
-                EEG.icaweights = W;
-                EEG.icasphere = eye(size(W,2));
-                EEG.icawinv = A;
+                % EEG.icaweights = W;
+                % EEG.icasphere = eye(size(W,2));
+                % EEG.icawinv = A;
                 % evalc("EEG = eeg_checkset(EEG, 'ica');");
-                EEG = eeg_checkset(EEG, 'ica');
             end
 
             %% Step 9: Interpolation
@@ -343,7 +342,7 @@ try
             %evalc("EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');");  
             EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');
             % evalc("EEG = eeg_checkset(EEG);");
-            EEG = eeg_checkset(EEG);
+            EEG = eeg_checkset(EEG); 
 
             %% Step 10: Re-referencing
             if PREPROC.CAV_Reference
@@ -361,24 +360,61 @@ try
                 error(msg)
             end
 
-            %% Step 13: Epoching and Saving Data
+            %% Step 13: Epoching, Post-Epoching Artifacts, and Saving Data
             switch PREPROC.Epoching
                 case 'all'
                     % 6-seconds with 2-seconds overlap
-                    evalc("EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');");
-                    evalc("EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', ['onefile']);");
-
+                    % evalc("EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');");
+                    EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');
+                    n_epochs_oaec_before = size(EEG_oAEC.data, 3);
+                    
                     % 12-seconds with 4-seconds overlap
-                    evalc("EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');");
-                    evalc("EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', ['onefile']);");
+                    % evalc("EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');");
+                    EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');
+                    n_epochs_phase_before = size(EEG_phase.data, 3);
+                    
+                    if PREPROC.Artifacts2
+                        % Artifact Removal
+                        EEG_oAEC = post_epoch_artifacts(EEG_oAEC);
+                        n_epochs_oaec_after = size(EEG_oAEC.data, 3);
+                        removed_epochs_oaec = n_epochs_oaec_before - n_epochs_oaec_after;
+                        % evalc("EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
+                        EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');
+
+                        EEG_phase = post_epoch_artifacts(EEG_phase);
+                        n_epochs_phase_after = size(EEG_phase.data, 3);
+                        removed_epochs_phase = n_epochs_phase_before - n_epochs_phase_after;
+                        % evalc("EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
+                        EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');
+                    end
 
                 case 'oAEC'
-                    evalc("EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');");
-                    evalc("EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', ['onefile']);");
+                    % evalc("EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');");
+                    EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');
+                    n_epochs_oaec_before = size(EEG_oAEC.data, 3);
+
+                    if PREPROC.Artifacts2
+                        % Artifact Removal
+                        EEG_oAEC = post_epoch_artifacts(EEG_oAEC);
+                        n_epochs_oaec_after = size(EEG_oAEC.data, 3);
+                        removed_epochs_oaec = n_epochs_oaec_before - n_epochs_oaec_after;
+                        % evalc("EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
+                        EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');
+                    end
 
                 case 'phase'
-                    evalc("EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');");
-                    evalc("EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', ['onefile']);");
+                    % evalc("EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');");
+                    EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');
+                    n_epochs_phase_before = size(EEG_phase.data, 3);
+                    
+                    if PREPROC.Artifacts2
+                        % Artifact Removal
+                        EEG_phase = post_epoch_artifacts(EEG_phase);
+                        n_epochs_phase_after = size(EEG_phase.data, 3);
+                        removed_epochs_phase = n_epochs_phase_before - n_epochs_phase_after;
+                        % evalc("EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
+                        EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');
+                    end
 
             end
 
@@ -397,8 +433,8 @@ try
                 prop_reduced_ICs = NaN;
             end
 
-            Log_table = table({Raw_File.name(1:end-4)}, {Cond_FileName}, EEG_oAEC.trials, EEG_phase.trials, prop_reduced_ICs, n_interp, ...
-                'VariableNames', {'File Name', 'Condition', 'oAEC Epochs', 'Phase Epochs', 'Prop. Reduced ICs', 'Interpolated Channels'});
+            Log_table = table({Raw_File.name(1:end-4)}, {Cond_FileName}, EEG_oAEC.trials, removed_epochs_oaec, EEG_phase.trials, removed_epochs_phase, prop_reduced_ICs, n_interp, ...
+                'VariableNames', {'File Name', 'Condition', 'oAEC Epochs', 'Removed oAEC Epochs', 'Phase Epochs', 'Removed Phase Epochs', 'Prop. Reduced ICs', 'Interpolated Channels'});
             
             ID = strsplit(Raw_File.name, '_');
             ID = ID{1};
@@ -446,3 +482,31 @@ catch e % If error ocurrs, create ErrorMessage
 end % try-catch
 
 end % function definition
+
+function EEG_out = post_epoch_artifacts(EEG_in)
+    Clean_Epochs_Mask = ones(EEG_in.trials, 1);
+    threshold_DB = 90;
+    threshold_SD = 3.29;
+    % Demean Data otherwise Thresholding does not work
+    EEG_in.data = EEG_in.data - mean(EEG_in.data,2);
+    
+    % Frequency Spectrum
+    [~, bad_Spectrum] = pop_rejspec(EEG_in, 1, 'elecrange', 1:EEG_in.nbchan, 'threshold', [-threshold_DB threshold_DB], 'freqlimits', [1 30]);
+    Clean_Epochs_Mask(bad_Spectrum) = 0;
+    
+    % Kurtosis
+    bad_Kurtosis = pop_rejkurt(EEG_in, 1, 1:EEG_in.nbchan,  threshold_SD,threshold_SD,0,0,0);
+    bad_Kurtosis = bad_Kurtosis.reject.rejkurt;
+    Clean_Epochs_Mask(bad_Kurtosis) = 0;
+    
+    % Probability open pop_jointprob
+    bad_Probability = pop_jointprob(EEG_in, 1, 1:EEG_in.nbchan,  threshold_SD, threshold_SD,0,0,0);
+    bad_Probability = bad_Probability.reject.rejjp;
+    Clean_Epochs_Mask(bad_Probability) = 0;
+
+    if  sum(Clean_Epochs_Mask) == 0
+        e.message = 'All Trials marked as bad (100%!!) .';
+        error(e.message);
+    end
+    EEG_out = pop_select(EEG_in, 'trial',find(Clean_Epochs_Mask));
+end
