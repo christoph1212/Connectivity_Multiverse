@@ -231,28 +231,28 @@ function connectivity_data = compute_measures(EEG, measures, current_band, freqb
         case 'all'
             % oAEC and Phase-based measure are stored in different files (different epoch lengths)
             if contains(EEG.filename, 'oAEC')
-                connectivity_data.oaec.(current_band) = compute_oAEC(EEG, current_band, freqband);
+                connectivity_data.oaec.(current_band).untresh = compute_oAEC(EEG, current_band, freqband);
             else
-                connectivity_data.imcoh.(current_band) = compute_imcoh(EEG, current_band, freqband);
-                connectivity_data.wpli.(current_band) = compute_wpli(EEG, current_band, freqband);
-                connectivity_data.pli.(current_band) = compute_pli(EEG, current_band, freqband);
-                connectivity_data.pcoh.(current_band) = compute_pcoh(EEG, current_band, freqband);
+                connectivity_data.imcoh.(current_band).untresh = compute_imcoh(EEG, current_band, freqband);
+                connectivity_data.wpli.(current_band).untresh = compute_wpli(EEG, current_band, freqband);
+                connectivity_data.pli.(current_band).untresh = compute_pli(EEG, current_band, freqband);
+                connectivity_data.pcoh.(current_band).untresh = compute_pcoh(EEG, current_band, freqband);
             end
     
         case 'imcoh'
-            connectivity_data.imcoh.(current_band) = compute_imcoh(EEG, current_band, freqband);
+            connectivity_data.imcoh.(current_band).untresh = compute_imcoh(EEG, current_band, freqband);
     
         case 'wpli'
-            connectivity_data.wpli.(current_band) = compute_wpli(EEG, current_band, freqband);
+            connectivity_data.wpli.(current_band).untresh = compute_wpli(EEG, current_band, freqband);
     
         case 'pli'
-            connectivity_data.pli.(current_band) = compute_pli(EEG, current_band, freqband);
+            connectivity_data.pli.(current_band).untresh = compute_pli(EEG, current_band, freqband);
     
         case 'pcoh'
-            connectivity_data.pcoh.(current_band) = compute_pcoh(EEG, current_band, freqband);
+            connectivity_data.pcoh.(current_band).untresh = compute_pcoh(EEG, current_band, freqband);
     
         case 'oaec'
-            connectivity_data.oaec.(current_band) = compute_oAEC(EEG, current_band, freqband);
+            connectivity_data.oaec.(current_band).untresh = compute_oAEC(EEG, current_band, freqband);
     
     end % CONNECTIVITY.Measures
 end
