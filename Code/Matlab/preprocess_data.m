@@ -179,7 +179,7 @@ try
     end
 
     % append new reference channel 'FCz' to chanlocs (as no data channel)
-    RefInfo = {EEG.nbchan 'labels' 'FCZ' 'theta' 0 'radius' 0.127 ...
+    RefInfo = {EEG.nbchan+1 'labels' 'FCZ' 'theta' 0 'radius' 0.127 ... %KP +1 ???
         'X' 0.388 'Y' 0 'Z' 0.922 'sph_theta' 0 'sph_phi' 67.2 ...
         'sph_radius' 1 'type' 'EEG' 'datachan' 0 }; %#ok
     % evalc("EEG = pop_chanedit(EEG, 'append', RefInfo);");
@@ -190,8 +190,10 @@ try
     % evalc("EEG_interp = pop_select( EEG_interp, 'nochannel', {'MASTl', 'MASTr'});");
     EEG_interp = pop_select( EEG, 'chantype','EEG');
     EEG_interp = pop_select( EEG_interp, 'nochannel', {'MASTl', 'MASTr'});
+    %KP nimm doch die Mastl oben bei den common channel raus? dann brauchst
+    %du dir die ja auch unten nicht nochmal raus nehmen
 
-    % some datasets miss OZ
+    % some datasets miss OZ 
     if length(EEG_interp.chanlocs) ~= 58 %#ok
         if length(EEG_interp.chanlocs) == 57 && ...
             ~ismember('OZ', upper({EEG_interp.chanlocs.labels}))
@@ -226,6 +228,16 @@ try
         EEG = pop_resample(EEG, new_srate);
     end
 
+    %% Step 6: Filtering %KP Moved: FILTERN am besten VORM EPOCHIEREN! auch noch vor den bedingungen
+    % High-Pass Filter
+    % evalc("EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);");
+    EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);
+
+    % Low-Pass Filter
+    % evalc("EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);");
+    EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);
+            
+            
     %% Step 5: Separate into Conditions
     EEG_Complete = EEG; %#ok
 
@@ -242,6 +254,7 @@ try
         Rel_SplitStruct.Trigger = [SplitStruct(5:6).Trigger];
         Rel_SplitStruct.Condition = {SplitStruct(5:6).Condition};
     end
+
 
     % Preprocess within each file
     for i_cond = 1:length(Rel_SplitStruct.Trigger)
@@ -277,20 +290,17 @@ try
                 
             end
             
+
+
+
+
             % Select only condition-specific data
             % evalc("EEG = pop_epoch( EEG_Complete, {num2str( Rel_SplitStruct.Trigger(i_cond))}, [0  60], 'epochinfo', 'yes');");
             % evalc("EEG = eeg_epoch2continuous(EEG);");
             EEG = pop_epoch( EEG_Complete, {num2str( Rel_SplitStruct.Trigger(i_cond))}, [0  60], 'epochinfo', 'yes');
             EEG = eeg_epoch2continuous(EEG);
 
-            %% Step 6: Filtering
-            % High-Pass Filter
-            % evalc("EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);");
-            EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);
 
-            % Low-Pass Filter
-            % evalc("EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);");
-            EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);
 
             %% Step 7: Bad Channels & Artifact Rejection
             % Define Settings based on PREPROC
@@ -337,7 +347,7 @@ try
             % evalc("EEG = pop_select( EEG, 'chantype','EEG');");
             EEG = pop_select( EEG, 'chantype','EEG');
             % evalc("EEG = pop_select( EEG, 'nochannel', {'MASTl', 'MASTr'});");
-            EEG = pop_select( EEG, 'nochannel', {'MASTl', 'MASTr'});
+            EEG = pop_select( EEG, 'nochannel', {'MASTl', 'MASTr'}); %KP wofür behälst du die Mastoide denn dann überhaupt drinnen? Nimm sie am Anfang raus und fertig
             n_interp = length(EEG_interp.chanlocs) - length(EEG.chanlocs);
             %evalc("EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');");  
             EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');
