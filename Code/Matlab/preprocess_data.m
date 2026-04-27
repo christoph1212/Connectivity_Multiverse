@@ -61,12 +61,12 @@ SplitStruct = struct('Trigger', {11, 12 21 22 31 32}, ...
     });
 
 %% Increase calculation speed by running multiple subjects in parallel
-% delete(gcp('nocreate')); % make sure that previous pooling is closed
-% if isempty(PREPROC.nWorkers)
-%     parpool("Processes")
-% else
-%     parpool("Processes", PREPROC.nWorkers);
-% end
+delete(gcp('nocreate')); % make sure that previous pooling is closed
+if isempty(PREPROC.nWorkers)
+    parpool("Processes")
+else
+    parpool("Processes", PREPROC.nWorkers);
+end
 
 FileName            = '';
 InputFile           = '';
@@ -80,7 +80,7 @@ nSubs               = length(Raw_Files);
 q = parallel.pool.DataQueue;
 afterEach(q, @(msg) fprintf('%s', msg));
 
-for i_Sub = 1%:nSubs
+parfor i_Sub = 1:2%nSubs
 
     % Check if Subject has been preprocessed 
     if sum(contains(fileNames_PreProc,Raw_Files(i_Sub).name)) == 4 && ...
@@ -119,7 +119,7 @@ end
 all_logs.Properties.VariableNames{'File Name'} = 'ID';
 splits = split(string(all_logs.ID), '_');
 all_logs.ID = splits(:, 1);
-all_logs.Condition = string(all_logs.Condition);    
+all_logs.Condition = string(all_logs.Condition);
 
 % Save Table as csv File
 writetable(all_logs, LogFilename);
@@ -142,8 +142,7 @@ try
 
     fprintf("Standardizing File: %s\n", Raw_File.name)
 
-    %evalc("EEG = pop_loadset(InputFile);");
-    EEG = pop_loadset(InputFile);
+    evalc("EEG = pop_loadset(InputFile);");    
 
     %% Step 2: remove unwanted channels
     % AFZ and FPZ are used as grounds in some labs
@@ -154,20 +153,19 @@ try
         'CP3', 'CP4', 'CP1', 'CP2', 'P1', 'P2', 'P3', 'P4', 'P5', ...
         'P6', 'P7', 'P8', 'PO7', 'PO8', 'PO3', 'PO4', 'O1', 'O2', ...
         'OZ', 'POZ', 'PZ', 'CPZ', 'CZ', 'FCZ', 'FZ', 'VOGabove', ...
-        'VOGbelow', 'HOGl', 'HOGr','MASTl', 'MASTr'};
+        'VOGbelow', 'HOGl', 'HOGr'};
     
     Common_Channels = Common_Channels(ismember(Common_Channels, ...
         {EEG.chanlocs.labels})); %#ok
-    % evalc("EEG = pop_select( EEG, 'channel', Common_Channels);");
-    EEG = pop_select( EEG, 'channel', Common_Channels);
+    evalc("EEG = pop_select(EEG, 'channel', Common_Channels);");
     
     %% Step 3: rereference all Files to FCZ (differs between Labs)
     if strcmp('CMS/DRL', EEG.Info_Lab.Reference)
-        % evalc("EEG = pop_reref(EEG, 'FCZ');");
-        EEG = pop_reref(EEG, 'FCZ');
+        evalc("EEG = pop_reref(EEG, 'FCZ');");
+        
     elseif strcmp('CZ', EEG.Info_Lab.Reference)
-        % evalc("EEG = pop_reref(EEG, 'FCZ', 'refloc', struct('labels',{'CZ'}, 'type',{'EEG'}, 'ref', [], 'urchan', [], 'theta',{0}, 'radius',{0},'X',{6.12e-17},'Y',{0},'Z',{1},'sph_theta', {0},'sph_phi',{90},'sph_radius',{1}));");
-        EEG = pop_reref(EEG, 'FCZ', 'refloc', struct('labels',{'CZ'}, 'type',{'EEG'}, 'ref', [], 'urchan', [], 'theta',{0}, 'radius',{0},'X',{6.12e-17},'Y',{0},'Z',{1},'sph_theta', {0},'sph_phi',{90},'sph_radius',{1}));
+        evalc("EEEG = pop_reref(EEG, 'FCZ', 'refloc', struct('labels',{'CZ'}, 'type',{'EEG'}, 'ref', [], 'urchan', [], 'theta',{0}, 'radius',{0},'X',{6.12e-17},'Y',{0},'Z',{1},'sph_theta', {0},'sph_phi',{90},'sph_radius',{1}));");
+        
     elseif strcmp('FCZ', EEG.Info_Lab.Reference)
         % do nothing
 
@@ -179,19 +177,14 @@ try
     end
 
     % append new reference channel 'FCz' to chanlocs (as no data channel)
-    RefInfo = {EEG.nbchan+1 'labels' 'FCZ' 'theta' 0 'radius' 0.127 ... %KP +1 ???
+    RefInfo = {EEG.nbchan 'labels' 'FCZ' 'theta' 0 'radius' 0.127 ...
         'X' 0.388 'Y' 0 'Z' 0.922 'sph_theta' 0 'sph_phi' 67.2 ...
         'sph_radius' 1 'type' 'EEG' 'datachan' 0 }; %#ok
-    % evalc("EEG = pop_chanedit(EEG, 'append', RefInfo);");
-    EEG = pop_chanedit(EEG, 'append', RefInfo);
+    evalc("EEG = pop_chanedit(EEG, 'append', RefInfo);");
+    
 
     % Chanlocs without Ref - save chanlocs for interpolation:
-    % evalc("EEG_interp = pop_select( EEG, 'chantype','EEG');");
-    % evalc("EEG_interp = pop_select( EEG_interp, 'nochannel', {'MASTl', 'MASTr'});");
-    EEG_interp = pop_select( EEG, 'chantype','EEG');
-    EEG_interp = pop_select( EEG_interp, 'nochannel', {'MASTl', 'MASTr'});
-    %KP nimm doch die Mastl oben bei den common channel raus? dann brauchst
-    %du dir die ja auch unten nicht nochmal raus nehmen
+    evalc("EEG_interp = pop_select( EEG, 'chantype','EEG');");
 
     % some datasets miss OZ 
     if length(EEG_interp.chanlocs) ~= 58 %#ok
@@ -220,25 +213,24 @@ try
         end
     end
 
+    % Rereference Interpolation Template to CAR to have FCz for Interpolation
+    evalc("EEG_interp = pop_reref(EEG_interp,[],'refloc',struct('labels',{'FCZ'},'type',{'EEG'},'ref', [], 'urchan', [], 'theta',{0},'radius',{0.127},'X',{0.388},'Y',{0},'Z',{0.922},'sph_theta',{0},'sph_phi',{67.2},'sph_radius',{1}, 'sph_theta_besa', [], 'sph_phi_besa', []));");
+
     %% Step 4: Downsampling
     % Different Sampling Rate per Site
     if PREPROC.Downsample
         new_srate = EEG.srate/2; %#ok
-        % evalc("EEG = pop_resample(EEG, new_srate);");
-        EEG = pop_resample(EEG, new_srate);
+        evalc("EEG = pop_resample(EEG, new_srate);");
     end
 
-    %% Step 6: Filtering %KP Moved: FILTERN am besten VORM EPOCHIEREN! auch noch vor den bedingungen
+    %% Step 5: Filtering
     % High-Pass Filter
-    % evalc("EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);");
-    EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);
+    evalc("EEG = pop_eegfiltnew(EEG,[],PREPROC.HP_Filter);");
 
     % Low-Pass Filter
-    % evalc("EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);");
-    EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);
+    evalc("EEG = pop_eegfiltnew(EEG,PREPROC.LP_Filter,[]);");            
             
-            
-    %% Step 5: Separate into Conditions
+    %% Step 6: Separate into Conditions
     EEG_Complete = EEG; %#ok
 
     % Select triggers and conditions
@@ -254,7 +246,6 @@ try
         Rel_SplitStruct.Trigger = [SplitStruct(5:6).Trigger];
         Rel_SplitStruct.Condition = {SplitStruct(5:6).Condition};
     end
-
 
     % Preprocess within each file
     for i_cond = 1:length(Rel_SplitStruct.Trigger)
@@ -288,21 +279,16 @@ try
                 fclose(fid1);
                 continue                
                 
-            end
-            
-
-
-
+            end            
 
             % Select only condition-specific data
-            % evalc("EEG = pop_epoch( EEG_Complete, {num2str( Rel_SplitStruct.Trigger(i_cond))}, [0  60], 'epochinfo', 'yes');");
-            % evalc("EEG = eeg_epoch2continuous(EEG);");
-            EEG = pop_epoch( EEG_Complete, {num2str( Rel_SplitStruct.Trigger(i_cond))}, [0  60], 'epochinfo', 'yes');
-            EEG = eeg_epoch2continuous(EEG);
-
-
+            evalc("EEG = pop_epoch( EEG_Complete, {num2str( Rel_SplitStruct.Trigger(i_cond))}, [0  60], 'epochinfo', 'yes');");
+            evalc("EEG = eeg_epoch2continuous(EEG);");
 
             %% Step 7: Bad Channels & Artifact Rejection
+            % Create Copy of Data and Filter
+            evalc("EEG_filt = pop_eegfiltnew(EEG, 'locutoff', 1, 'hicutoff', []);");
+
             % Define Settings based on PREPROC
             args = {'WindowCriterion', 'off', ...
                 'Highpass', 'off'};
@@ -323,46 +309,72 @@ try
 
             if PREPROC.Artifacts
                 args = [args, ...
-                    {'BurstCriterion', 20}]; %#ok
+                    {'BurstCriterion', 50, ...
+                    'BurstRejection','on', ...
+                    'Distance','Euclidian'}]; %#ok
             else
                 args = [args, {'BurstCriterion', 'off'}]; %#ok
             end
 
             if PREPROC.BadChans || PREPROC.Artifacts
-                % evalc('EEG = clean_artifacts(EEG, args{:});');
-                EEG = clean_artifacts(EEG, args{:});
+                evalc("EEG_cleaned = clean_artifacts(EEG_filt, args{:});");
+            end
+               
+            if PREPROC.Artifacts
+                % Remove artifacts
+                Clean_Segment_Mask = EEG_cleaned.etc.clean_sample_mask';
+                retain_data_intervals = reshape(find(diff([false Clean_Segment_Mask' false])),2,[])';
+                retain_data_intervals(:,2) = retain_data_intervals(:,2)-1; %#ok
+                evalc("EEG = pop_select(EEG, 'point', retain_data_intervals);");
+            end
+
+            if PREPROC.BadChans
+                % Remove bad channels
+                Clean_Channel_Mask = EEG_cleaned.etc.clean_channel_mask; %#ok
+                evalc("EEG = pop_select( EEG, 'channel', {EEG.chanlocs(find(Clean_Channel_Mask)).labels});");
             end
 
             %% Step 8: wICA
             if PREPROC.wICA
-                % evalc("[EEG,wIC,A,W,IC] = RELAX_wICA_on_ICLabel_artifacts(EEG, 'extended_infomax_ICA');");
-                [EEG,wIC,A,W,IC] = RELAX_wICA_on_ICLabel_artifacts(EEG, 'extended_infomax_ICA');
-                % EEG.icaweights = W;
-                % EEG.icasphere = eye(size(W,2));
-                % EEG.icawinv = A;
-                % evalc("EEG = eeg_checkset(EEG, 'ica');");
+                % Run ICA
+                addpath("wICA-master")
+                [IC_activations, A, W] = fastica(double(EEG.data), 'verbose','on');
+                EEG.icaweights = W;
+                EEG.icasphere  = eye(EEG.nbchan);
+                EEG.icawinv    = A;
+                EEG = eeg_checkset(EEG, 'ica');
+
+                % ICLabel
+                EEG = iclabel(EEG);
+                classifications = EEG.etc.ic_classification.ICLabel.classifications;
+                artifact_ICs = find(classifications(:,3)>0.7 & classifications(:,1)<0.7);
+
+                % Remove strong Artifacts with wICA
+                Kthr = 1.25;
+                ArtefThreshold = 4;
+                IC_activations_clean = RemoveStrongArtifacts(IC_activations, artifact_ICs, Kthr, ArtefThreshold, EEG.srate, 'on');
+
+                % Project to Original Data
+                Data_clean = A * IC_activations_clean;
+                EEG.data = Data_clean;
+                EEG = eeg_checkset(EEG);
             end
 
             %% Step 9: Interpolation
-            % evalc("EEG = pop_select( EEG, 'chantype','EEG');");
-            EEG = pop_select( EEG, 'chantype','EEG');
-            % evalc("EEG = pop_select( EEG, 'nochannel', {'MASTl', 'MASTr'});");
-            EEG = pop_select( EEG, 'nochannel', {'MASTl', 'MASTr'}); %KP wofür behälst du die Mastoide denn dann überhaupt drinnen? Nimm sie am Anfang raus und fertig
+            evalc("EEG = pop_select( EEG, 'chantype','EEG');");
             n_interp = length(EEG_interp.chanlocs) - length(EEG.chanlocs);
-            %evalc("EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');");  
-            EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');
-            % evalc("EEG = eeg_checkset(EEG);");
-            EEG = eeg_checkset(EEG); 
+            evalc("EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');");
+            evalc("EEG = eeg_checkset(EEG);");
 
-            %% Step 10: Re-referencing
+            %% Step 10: Re-referencing - remove?
             if PREPROC.CAV_Reference
-                % evalc("EEG = pop_reref(EEG,[],'refloc',struct('labels',{'FCZ'},'type',{'EEG'},'ref', [], 'urchan', [], 'theta',{0},'radius',{0.127},'X',{0.388},'Y',{0},'Z',{0.922},'sph_theta',{0},'sph_phi',{67.2},'sph_radius',{1}, 'sph_theta_besa', [], 'sph_phi_besa', []));");
-                EEG = pop_reref(EEG,[],'refloc',struct('labels',{'FCZ'},'type',{'EEG'},'ref', [], 'urchan', [], 'theta',{0},'radius',{0.127},'X',{0.388},'Y',{0},'Z',{0.922},'sph_theta',{0},'sph_phi',{67.2},'sph_radius',{1}, 'sph_theta_besa', [], 'sph_phi_besa', []));
+                evalc("EEG = pop_reref(EEG,[],'refloc',struct('labels',{'FCZ'},'type',{'EEG'},'ref', [], 'urchan', [], 'theta',{0},'radius',{0.127},'X',{0.388},'Y',{0},'Z',{0.922},'sph_theta',{0},'sph_phi',{67.2},'sph_radius',{1}, 'sph_theta_besa', [], 'sph_phi_besa', []));");
             end            
 
             %% Step 11: Surface Laplacian
-            % evalc("EEG = pop_currentdensity(EEG, 'method', 'finite');");
-            EEG = pop_currentdensity(EEG, 'method', 'finite');
+            if PREPROC.Surf_Lap
+                evalc("EEG = pop_currentdensity(EEG, 'method', 'finite');");
+            end
 
             %% Step 12: Check Channel Number
             if length(EEG.chanlocs) ~= 59
@@ -370,60 +382,69 @@ try
                 error(msg)
             end
 
+            % Order Channels and Data
+            chanOrder = { ...
+                'FP1','FP2', ...
+                'AF7','AF3','AF4','AF8', ...
+                'F7','F5','F3','F1','FZ','F2','F4','F6','F8', ...
+                'FT7','FC5','FC3','FC1','FCZ','FC2','FC4','FC6','FT8', ...
+                'T7','C5','C3','C1','CZ','C2','C4','C6','T8', ...
+                'TP7','CP5','CP3','CP1','CPZ','CP2','CP4','CP6','TP8', ...
+                'P7','P5','P3','P1','PZ','P2','P4','P6','P8', ...
+                'PO7','PO3','POZ','PO4','PO8', ...
+                'O1','OZ','O2' ...
+            };
+            [~, chIdx] = ismember(chanOrder, {EEG.chanlocs.labels});
+            EEG.data = EEG.data(chIdx, :);
+            EEG.chanlocs = EEG.chanlocs(chIdx);
+            evalc("EEG = eeg_checkset(EEG);");
+
             %% Step 13: Epoching, Post-Epoching Artifacts, and Saving Data
             switch PREPROC.Epoching
                 case 'all'
                     % 6-seconds with 2-seconds overlap
-                    % evalc("EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');");
-                    EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');
+                    evalc("EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');");
                     n_epochs_oaec_before = size(EEG_oAEC.data, 3);
                     
                     % 12-seconds with 4-seconds overlap
-                    % evalc("EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');");
-                    EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');
+                    evalc("EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');");
                     n_epochs_phase_before = size(EEG_phase.data, 3);
                     
                     if PREPROC.Artifacts2
                         % Artifact Removal
-                        EEG_oAEC = post_epoch_artifacts(EEG_oAEC);
+                        evalc("EEG_oAEC = post_epoch_artifacts(EEG_oAEC);");
                         n_epochs_oaec_after = size(EEG_oAEC.data, 3);
                         removed_epochs_oaec = n_epochs_oaec_before - n_epochs_oaec_after;
-                        % evalc("EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
-                        EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');
-
-                        EEG_phase = post_epoch_artifacts(EEG_phase);
+                        evalc("EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
+                        
+                        evalc("EEG_phase = post_epoch_artifacts(EEG_phase);");
                         n_epochs_phase_after = size(EEG_phase.data, 3);
                         removed_epochs_phase = n_epochs_phase_before - n_epochs_phase_after;
-                        % evalc("EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
-                        EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');
+                        evalc("EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
                     end
 
                 case 'oAEC'
-                    % evalc("EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');");
-                    EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');
+                    evalc("EEG_oAEC = eeg_regepochs(EEG, 4, [0 6], 0, 'X', 'on');");
                     n_epochs_oaec_before = size(EEG_oAEC.data, 3);
 
                     if PREPROC.Artifacts2
                         % Artifact Removal
-                        EEG_oAEC = post_epoch_artifacts(EEG_oAEC);
+                        evalc("EEG_oAEC = post_epoch_artifacts(EEG_oAEC);");
                         n_epochs_oaec_after = size(EEG_oAEC.data, 3);
                         removed_epochs_oaec = n_epochs_oaec_before - n_epochs_oaec_after;
-                        % evalc("EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
-                        EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');
+                        evalc("EEG_oAEC = pop_saveset(EEG_oAEC, 'filename', FileName_oAEC, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
                     end
 
                 case 'phase'
-                    % evalc("EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');");
-                    EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');
+                    evalc("EEG_phase = eeg_regepochs(EEG, 8, [0 12], 0, 'X', 'on');");
                     n_epochs_phase_before = size(EEG_phase.data, 3);
                     
                     if PREPROC.Artifacts2
                         % Artifact Removal
-                        EEG_phase = post_epoch_artifacts(EEG_phase);
+                        evalc("EEG_phase = post_epoch_artifacts(EEG_phase);");
                         n_epochs_phase_after = size(EEG_phase.data, 3);
                         removed_epochs_phase = n_epochs_phase_before - n_epochs_phase_after;
-                        % evalc("EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
-                        EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');
+                        evalc("EEG_phase = pop_saveset(EEG_phase, 'filename', FileName_phase, 'filepath', char(dir_Preproc), 'savemode', 'onefile');");
                     end
 
             end
@@ -435,6 +456,14 @@ try
 
             if ~exist('EEG_phase','var')
                 EEG_phase.trials = NaN;
+            end
+
+            if ~exist('removed_epochs_oaec','var')
+                removed_epochs_oaec = NaN;
+            end
+
+            if ~exist('removed_epochs_phase','var')
+                removed_epochs_phase = NaN;
             end
 
             if isfield(EEG, 'RELAXProcessing_wICA')

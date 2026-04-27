@@ -60,9 +60,9 @@ fprintf(['%s\n' ...
 
 %% Analysis Configurations
 PREPROC = struct(...
-    'nWorkers',         [], ...     % Number of Workers for parfor - use [] for max
+    'nWorkers',         2, ...     % Number of Workers for parfor - use [] for max
     'Downsample',       true, ...   % Downsample to SR/2
-    'HP_Filter',        0.1, ...    % High-Pass Filter
+    'HP_Filter',        1, ...      % High-Pass Filter
     'LP_Filter',        30, ...     % Low-Pass Filter
     'BadChans',         true, ...   % Bad Channel Detection
     'Artifacts',        true, ...   % Artifact Rejection
@@ -82,7 +82,7 @@ CONNECTIVITY = struct(...
 
 THRESHOLD = struct(...
     'nWorkers',         2, ...      % Number of Workers for parfor
-    'Method',           'all' ...   % Thresholding Method: 'auc', 'omst', 'eco', 'mcc', or 'all'
+    'Method',           'all' ...   % Thresholding Method: 'dens', 'omst', 'eco', 'mcc', or 'all'
 );
 
 fprintf([repmat('=', 1, 100), '\nYour analysis settings:\n\n   <strong>Preprocessing</strong>\n'])

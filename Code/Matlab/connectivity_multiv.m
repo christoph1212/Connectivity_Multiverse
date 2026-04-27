@@ -9,8 +9,10 @@ function connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, co
 %       and one for oAEC based methods)
 %
 % Inputs:
-%   dir_Preproc:        String pointing to the folder where Raw Data is
+%   dir_Preproc:        String pointing to the folder where preproc Data is
 %   dir_Log:            String pointing to where Log-Files should be saved
+%   dir_Connect         String pointing to where connectivity data should
+%                       be saved
 %   CONNECTIVITY:       Struct with analysis settings
 %   combine_conn_files: Boolean. Should connectivity files be combined?
 %                       Default: false
@@ -144,7 +146,7 @@ parfor i_File = 1:nFiles
         fprintf('Problem executing File: %s\n',ErrorFile);
         fprintf('The Error Message is: \n%s \n',ErrorMessage);
         [~, ErrorFile, ~] = fileparts(ErrorFile);
-        ErrorFile = fullfile(dir_Log, ['Error_PreProc_', ErrorFile, '.txt']);
+        ErrorFile = fullfile(dir_Log, ['Error_Connect_', ErrorFile, '.txt']);
         fid1 = fopen(ErrorFile, 'wt');
         fprintf(fid1, 'Error-Subject: %s \nThe returned Error Message is: \n\n%s \n', InputFile,  ErrorMessage);
         fclose(fid1);
