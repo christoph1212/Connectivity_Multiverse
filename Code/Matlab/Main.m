@@ -24,11 +24,12 @@ close
 current_file        = mfilename('fullpath');
 [current_dir, ~, ~] = fileparts(current_file);
 dir_Root            = fileparts(fileparts(current_dir));          % path to project
-dir_Raw             = fullfile(dir_Root, 'Data', 'RawData');      % path to raw data
-dir_Log             = fullfile(dir_Root, 'Data', 'Log');          % path where log data should be stored
-dir_Preproc         = fullfile(dir_Root, 'Data', 'Preprocessed'); % path where preprocessed data should be stored (will be created)
-dir_Connect         = fullfile(dir_Root, 'Data', 'Connectivity'); % path where connectivity data should be stored (will be created)
-combine_conn_files  = false;                                       % combine connectivity files into one file? Single files will be deleted.
+% dir_Raw             = fullfile(dir_Root, 'Data', 'RawData');      % path to raw data
+dir_Raw             = "C:\Users\Christoph Frühlinger\Nextcloud\PhD\Forschung\Many Labs Replication - ERN\Data\EEG-Daten_Backup";
+dir_Log             = fullfile(dir_Root, 'Data', 'TEST_Log');          % path where log data should be stored
+dir_Preproc         = fullfile(dir_Root, 'Data', 'TEST_Preprocessed'); % path where preprocessed data should be stored (will be created)
+dir_Connect         = fullfile(dir_Root, 'Data', 'TEST_Connectivity'); % path where connectivity data should be stored (will be created)
+combine_conn_files  = true;                                       % combine connectivity files into one file? Single files will be deleted.
 Overwrite           = true;                                       % overwrite existing files?
 
 % Start EEGLAB
@@ -38,7 +39,7 @@ eeglab nogui
 clc
 
 % Check for necessary Plugins
-plugins             = ["RELAX", "scd", "Fieldtrip-lite"];
+plugins             = ["scd", "Fieldtrip-lite"];
 
 for i = 1:numel(plugins)
     if ~ismember(plugins(i), string({PLUGINLIST.plugin}))
@@ -60,8 +61,8 @@ fprintf(['%s\n' ...
 
 %% Analysis Configurations
 PREPROC = struct(...
-    'nWorkers',         2, ...     % Number of Workers for parfor - use [] for max
-    'Downsample',       true, ...   % Downsample to SR/2
+    'nWorkers',         12, ...      % Number of Workers for parfor - use [] for max
+    'Downsample',       false, ...  % Downsample to SR/2
     'HP_Filter',        1, ...      % High-Pass Filter
     'LP_Filter',        30, ...     % Low-Pass Filter
     'BadChans',         true, ...   % Bad Channel Detection
@@ -75,13 +76,13 @@ PREPROC = struct(...
 );
 
 CONNECTIVITY = struct(...
-    'nWorkers',         2,    ...   % Number of Workers for parfor - use [] for max
+    'nWorkers',         12,    ...   % Number of Workers for parfor - use [] for max
     'Bands',            'all', ...  % Frequency Bands: 'delta', 'theta', 'alpha1', 'alpha2', 'beta', or 'all'
     'Measures',         'all'  ...  % Connectivity Measures: 'imcoh', 'wpli', 'pli', 'pcoh', 'oaec', or 'all'
 );
 
 THRESHOLD = struct(...
-    'nWorkers',         2, ...      % Number of Workers for parfor
+    'nWorkers',         12, ...      % Number of Workers for parfor
     'Method',           'all' ...   % Thresholding Method: 'dens', 'omst', 'eco', 'mcc', or 'all'
 );
 
