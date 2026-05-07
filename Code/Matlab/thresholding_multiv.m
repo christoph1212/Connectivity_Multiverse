@@ -1,4 +1,4 @@
-function thresholding_multiv(dir_Connect, dir_Log, THRESHOLD, Overwrite)
+function thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
 %% Connectivity Analysis - Thresholding Multiverse
 % Run:
 %   (1) Thresholding Multiverse
@@ -7,6 +7,7 @@ function thresholding_multiv(dir_Connect, dir_Log, THRESHOLD, Overwrite)
 %   (1) updated .mat file with the thresholded adjacency matrix 
 %
 % Inputs:
+%   dir_Root:           Root folder of the project
 %   dir_Connect:        String pointing to the folder where unthresholded
 %                       Data is stored and where data will be updated
 %   dir_Log:            String pointing to where Log-Files should be saved
@@ -84,7 +85,7 @@ parfor i_File = 1:nFiles
                 current_band = bands{i_band};
                 
                 % Get unthresholded adjacency matrix
-                am = connectivity_data.(current_measure).(current_band).untresh;
+                am = connectivity_data.(current_measure).(current_band).unthresh;
 
                 switch THRESHOLD.Method %#ok
 
@@ -167,4 +168,9 @@ parfor i_File = 1:nFiles
     end % try-catch
 
 end % i_File
-    
+fprintf(['\n%s\n' ...
+         'Finished Thresholding' ...
+         '\n%s\n'], ...
+         repmat('=', 1, 100), ...
+         repmat('=', 1, 100)); 
+end

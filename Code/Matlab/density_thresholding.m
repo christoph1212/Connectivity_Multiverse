@@ -12,6 +12,8 @@ function binary = density_thresholding(am)
 
 % Convert to graph and sort edges
 N = size(am, 1);
+am(am < 0) = 0;
+am(logical(eye(size(am)))) = 0;
 G = graph(am);
 Edges = G.Edges;
 sorted_edges = sortrows(Edges,2, 'descend');

@@ -110,7 +110,7 @@ end
 % Adapt Table
 all_logs.Properties.VariableNames{'File Name'} = 'ID';
 splits = split(string(all_logs.ID), '_');
-all_logs.ID = splits(:, 1);
+all_logs.ID = splits(:, 2);
 all_logs.Condition = string(all_logs.Condition);    
 
 % Save Table as csv File
@@ -169,7 +169,7 @@ try
     EEG = pop_chanedit(EEG, 'changefield', {find(strcmpi({EEG.chanlocs.labels}, 'EXG6')) 'labels' 'MASTl'});
     EEG = pop_chanedit(EEG, 'changefield', {find(strcmpi({EEG.chanlocs.labels}, 'MASTl')) 'type' 'EEG'});
 
-    chanlocsfile = "C:\Users\Christoph Frühlinger\Nextcloud\PhD\Forschung\Many Labs Replication - ERN\MATLAB\Biosemi_72.ced";
+    chanlocsfile = fullfile(Raw_File.folder, 'Biosemi_72.ced');
     EEG = pop_chanedit(EEG, 'lookup', chanlocsfile);
 
     EEG = pop_select(EEG, 'nochannel', {'MASTl', 'MASTr'});
@@ -488,7 +488,7 @@ try
             
             fprintf('***Error in File: %s;\n%s.\n', FileName, ErrorMessage);
             
-            ErrorFile = fullfile(dir_Log, ['Error_PreProc', '_', strrep(FileName, '.set', '.txt')]);
+            ErrorFile = fullfile(dir_Log, ['Error_PreProc', '_', strrep(FileName, '.bdf', '.txt')]);
             fid1 = fopen( ErrorFile, 'wt' );
             fprintf(fid1, 'Error-File: %s \nThe returned Error Message is: \n\n%s \n', FileName,  ErrorMessage);
             fclose(fid1);

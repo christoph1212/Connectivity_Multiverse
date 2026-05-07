@@ -18,6 +18,7 @@ function binary = mcc_thresholding(am)
 %     https://doi.org/10.1016/j.neucom.2015.03.092
 
 G = am;
+G(G < 0) = 0;
 
 % Check if diagonal is set to 0
 if sum(diag(G)) ~= 0

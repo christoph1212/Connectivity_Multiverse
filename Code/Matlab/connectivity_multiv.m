@@ -69,7 +69,7 @@ nFiles          = length(Preproc_Files);
 
 %% Morlet-Wavelet Decomposition
 freqbands_struct = struct(...
-    'delta',    [1 4], ...
+    'delta',    [2 4], ...
     'theta',    [4 8], ...
     'alpha1',   [8 10], ...
     'alpha2',   [10 13], ...
@@ -87,6 +87,11 @@ parfor i_File = 1:nFiles
         filesplits = split(Preproc_Files(i_File).name, '_');
         OutputFileName = [filesplits{6} '_', strjoin(filesplits(1:5), '_') '_connectivity.mat'];
         OutputFile = fullfile(dir_Connect, OutputFileName);
+
+        % FOR TESTING
+        % [~, name, ~] = fileparts(Preproc_Files(i_File).name)
+        % OutputFileName = [name, '_connectivity.mat'];
+        % OutputFile = fullfile(dir_Connect, OutputFileName);
     
         if isfile(OutputFile) && ~Overwrite
             continue
@@ -163,63 +168,51 @@ if combine_conn_files && strcmp(CONNECTIVITY.Measures, 'all')
     [~, sort_idx] = sort({connectivity_files.name});
     connectivity_files = connectivity_files(sort_idx);
 
-    for i_File = 1:2:length(connectivity_files)
-        % Get Sub-ID from 1st File
-        Filename1 = connectivity_files(i_File).name;
-        subID1 = strsplit(Filename1, '_');
-        subID1 = strjoin(subID1(1:5), '_');
+    phase_files = connectivity_files(contains({connectivity_files.name}, 'phase'));
 
+    for i_File = 1:length(phase_files)
+        % Get Sub-ID from 1st File
+        Filename_phase = phase_files(i_File).name;
+        parts = strsplit(Filename_phase, '_');
+        subID = strjoin(parts(1:5), '_');
+
+        % FOR TESTING
+        % subID = [strjoin(parts(1:2), '_'), '_', strjoin(parts(5:6), '_')];
+         
+        OutputFilename = [subID '_full_connectivity.mat'];
         % Check if file exists
-        if isfile(fullfile(dir_Connect, [subID1 '_full_connectivity.mat']))
+        if isfile(fullfile(dir_Connect, OutputFilename))
             continue
         end
     
-        % Get Sub-ID from 2nd File
-        Filename2 = connectivity_files(i_File+1).name;
-        subID2 = strsplit(Filename2, '_');
-        subID2 = strjoin(subID2(1:5), '_');
+        oaec_pattern = [strjoin(parts(1:3), '_') '_oAEC_' strjoin(parts(5:6), '_') '*'];
+        oaec_match   = dir(fullfile(dir_Connect, oaec_pattern));
 
-        if strcmp(subID1, subID2)
-            fprintf("Combining File %d/%d\n", i_File, length(connectivity_files)/2)
-            file1 = fullfile(connectivity_files(i_File).folder, connectivity_files(i_File).name);
-            file2 = fullfile(connectivity_files(i_File+1).folder, connectivity_files(i_File+1).name);
-
-            if contains(file1, 'phase')
-                % Load and Combine Data
-                connectivity_matrix = load(file1);
-                oaec_data = load(file2);
-                connectivity_matrix.oaec = oaec_data.oAEC;
-
-                % Save new File as struct
-                newOutputFileName = strrep(Filename1, 'phase', 'full');
-                OutputFile = fullfile(dir_Connect, newOutputFileName);
-                delete(file1, file2)
-                save(OutputFile, '-fromstruct', connectivity_matrix)
-                fprintf("%s saved - Deleted single files\n", newOutputFileName)
-
-            elseif contains(file2, 'phase')
-                connectivity_matrix = load(file2);
-                oaec_data = load(file1);
-                connectivity_matrix.oaec = oaec_data.oAEC;
-
-                % Save new File as struct
-                newOutputFileName = strrep(Filename1, 'oAEC', 'full');
-                OutputFile = fullfile(dir_Connect, newOutputFileName);
-                delete(file1, file2)
-                save(OutputFile, '-fromstruct', connectivity_matrix)
-                fprintf("%s saved - Deleted single files\n", newOutputFileName)
-            end
-            
-        else
-            warning("No matching files found for: %s", Filename1)
+        if isempty(oaec_match)
+            warning("No matching oAEC file found for: %s", Filename_phase)
             continue
-
+        elseif length(oaec_match) > 1
+            warning("Multiple oAEC matches for %s – skipping.", subID)
+            continue
         end
+
+        fprintf("Combining file %d/%d: %s\n", i_File, length(phase_files), subID)
+
+        file_phase = fullfile(phase_files(i_File).folder, phase_files(i_File).name);
+        file_oaec = fullfile(oaec_match(1).folder, oaec_match(1).name);
+
+        connectivity_matrix       = load(file_phase);
+        oaec_data                 = load(file_oaec);
+        connectivity_matrix.oaec  = oaec_data.oaec;
+
+        OutputFile = fullfile(dir_Connect, OutputFilename);
+        save(OutputFile, '-fromstruct', connectivity_matrix)
+        delete(file_phase, file_oaec)
+        fprintf("%s saved - Deleted single files\n", OutputFilename)
 
     end
     fprintf("\nCombining files completed.\n")
 end
-
 fprintf(['\n%s\n' ...
         'Finished Connectivity Analysis' ...
         '\n%s\n'], ...
@@ -233,28 +226,28 @@ function connectivity_data = compute_measures(EEG, measures, current_band, freqb
         case 'all'
             % oAEC and Phase-based measure are stored in different files (different epoch lengths)
             if contains(EEG.filename, 'oAEC')
-                connectivity_data.oaec.(current_band).untresh = compute_oAEC(EEG, current_band, freqband);
+                connectivity_data.oaec.(current_band).unthresh = compute_oAEC(EEG, current_band, freqband);
             else
-                connectivity_data.imcoh.(current_band).untresh = compute_imcoh(EEG, current_band, freqband);
-                connectivity_data.wpli.(current_band).untresh = compute_wpli(EEG, current_band, freqband);
-                connectivity_data.pli.(current_band).untresh = compute_pli(EEG, current_band, freqband);
-                connectivity_data.pcoh.(current_band).untresh = compute_pcoh(EEG, current_band, freqband);
+                connectivity_data.imcoh.(current_band).unthresh = compute_imcoh(EEG, current_band, freqband);
+                connectivity_data.wpli.(current_band).unthresh = compute_wpli(EEG, current_band, freqband);
+                connectivity_data.pli.(current_band).unthresh = compute_pli(EEG, current_band, freqband);
+                connectivity_data.pcoh.(current_band).unthresh = compute_pcoh(EEG, current_band, freqband);
             end
     
         case 'imcoh'
-            connectivity_data.imcoh.(current_band).untresh = compute_imcoh(EEG, current_band, freqband);
+            connectivity_data.imcoh.(current_band).unthresh = compute_imcoh(EEG, current_band, freqband);
     
         case 'wpli'
-            connectivity_data.wpli.(current_band).untresh = compute_wpli(EEG, current_band, freqband);
+            connectivity_data.wpli.(current_band).unthresh = compute_wpli(EEG, current_band, freqband);
     
         case 'pli'
-            connectivity_data.pli.(current_band).untresh = compute_pli(EEG, current_band, freqband);
+            connectivity_data.pli.(current_band).unthresh = compute_pli(EEG, current_band, freqband);
     
         case 'pcoh'
-            connectivity_data.pcoh.(current_band).untresh = compute_pcoh(EEG, current_band, freqband);
+            connectivity_data.pcoh.(current_band).unthresh = compute_pcoh(EEG, current_band, freqband);
     
         case 'oaec'
-            connectivity_data.oaec.(current_band).untresh = compute_oAEC(EEG, current_band, freqband);
+            connectivity_data.oaec.(current_band).unthresh = compute_oAEC(EEG, current_band, freqband);
     
     end % CONNECTIVITY.Measures
 end
