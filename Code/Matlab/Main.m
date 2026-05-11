@@ -30,6 +30,7 @@ dir_Preproc         = fullfile(dir_Root, 'Data', 'TEST_Preprocessed'); % path wh
 dir_Connect         = fullfile(dir_Root, 'Data', 'TEST_Connectivity'); % path where connectivity data should be stored (will be created)
 combine_conn_files  = true;                                       % combine connectivity files into one file? Single files will be deleted.
 Overwrite           = true;                                       % overwrite existing files?
+nWorkers            = 12;                                         % for parfor
 
 % Start EEGLAB
 dir_eeglab          = fullfile(dir_Root, 'Code', 'Matlab', 'eeglab2026.0.0'); % adjust accordingly
@@ -58,31 +59,43 @@ fprintf(['%s\n' ...
          dir_Root, dir_Raw, dir_Log, Overwrite, combine_conn_files, ...
          repmat('=', 1, 100));
 
+% Check if Brain Connectivity Toolbox exists
+if exist(fullfile(userpath, '2019_03_03_BCT'), "dir") == 7
+    addpath(fullfile(userpath, '2019_03_03_BCT'))
+else
+    error("Brain Connectivity Toolbox not found.\nPlease download and place in: %s\n\n", userpath)
+end
+
 %% Analysis Configurations
 PREPROC = struct(...
-    'nWorkers',         12, ...      % Number of Workers for parfor - use [] for max
-    'Downsample',       false, ...  % Downsample to SR/2
-    'HP_Filter',        1, ...      % High-Pass Filter
-    'LP_Filter',        30, ...     % Low-Pass Filter
-    'BadChans',         true, ...   % Bad Channel Detection
-    'Artifacts',        true, ...   % Artifact Rejection
-    'wICA',             true, ...   % Wavelet-Enhanced ICA
-    'Interpolate',      true, ...   % Interpolate Bad Channels    
-    'CAV_Reference',    true, ...   % Re-reference to Common Average
-    'Surf_Lap',         true, ...   % Apply Surface Laplacian
-    'Epoching',         'all', ...  % Epoch Data for 'oAEC', 'phase' Based Measures or 'all' 
-    'Artifacts2',       true ...    % Post Epoching Artifact Rejection
+    'nWorkers',         nWorkers, ... % Number of Workers for parfor - use [] for max
+    'Downsample',       false, ...    % Downsample to SR/2
+    'HP_Filter',        1, ...        % High-Pass Filter
+    'LP_Filter',        30, ...       % Low-Pass Filter
+    'BadChans',         true, ...     % Bad Channel Detection
+    'Artifacts',        true, ...     % Artifact Rejection
+    'wICA',             true, ...     % Wavelet-Enhanced ICA
+    'Interpolate',      true, ...     % Interpolate Bad Channels    
+    'CAV_Reference',    true, ...     % Re-reference to Common Average
+    'Surf_Lap',         true, ...     % Apply Surface Laplacian
+    'Epoching',         'all', ...    % Epoch Data for 'oAEC', 'phase' Based Measures or 'all' 
+    'Artifacts2',       true ...      % Post Epoching Artifact Rejection
 );
 
 CONNECTIVITY = struct(...
-    'nWorkers',         12,    ...   % Number of Workers for parfor - use [] for max
-    'Bands',            'all', ...  % Frequency Bands: 'delta', 'theta', 'alpha1', 'alpha2', 'beta', or 'all'
-    'Measures',         'all'  ...  % Connectivity Measures: 'imcoh', 'wpli', 'pli', 'pcoh', 'oaec', or 'all'
+    'nWorkers',         nWorkers, ... % Number of Workers for parfor - use [] for max
+    'Bands',            'all', ...    % Frequency Bands: 'delta', 'theta', 'alpha1', 'alpha2', 'beta', or 'all'
+    'Measures',         'all'  ...    % Connectivity Measures: 'imcoh', 'wpli', 'pli', 'pcoh', 'oaec', or 'all'
 );
 
 THRESHOLD = struct(...
-    'nWorkers',         12, ...      % Number of Workers for parfor
-    'Method',           'all' ...   % Thresholding Method: 'dens', 'omst', 'eco', 'mcc', or 'all'
+    'nWorkers',         nWorkers, ... % Number of Workers for parfor
+    'Method',           'all' ...     % Thresholding Method: 'dens', 'omst', 'eco', 'mcc', or 'all'
+);
+
+GRAPH = struct(...
+    'nWorkers',         nWorkers, ... % Number of Workers for parfor
+    'metrics',          'all' ...     % Graph Theory Metrics: 'cc', 'pathl', 'eglob', 'eloc', 'smallworld', or 'all'
 );
 
 fprintf([repmat('=', 1, 100), '\nYour analysis settings:\n\n   <strong>Preprocessing</strong>\n'])
@@ -91,6 +104,8 @@ fprintf('   <strong>Connectivity</strong>\n')
 disp(CONNECTIVITY)
 fprintf('   <strong>Thresholding</strong>\n')
 disp(THRESHOLD)
+fprintf('   <strong>Graph Theory</strong>\n')
+disp(GRAPH)
 fprintf([repmat('=', 1, 100), '\n']);
 
 %% Preprocessing
@@ -102,3 +117,6 @@ fprintf([repmat('=', 1, 100), '\n']);
 
 %% Thresholding Multiverse
 % thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
+
+%% Graph Theory
+% graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
