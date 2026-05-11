@@ -6,7 +6,7 @@ This is the github repository for the study [Robustness of EEG Functional Brain 
 To reproduce the results from the paper, simply clone the repository and request the data from the authors.
 
 ## Dependencies & Credits
-This project uses functions and code from the following third-party toolboxes. Please refer to the respective repositories for license details.
+This project uses functions and code from the following third-party toolboxes. Please refer to the respective repositories for license details. Code from the Orthogonal Minimum Spanning Tree repository (OMST; Dimitriadis et al., 2017) is licenced under GPL v3, which requires this project to adopt the same license.
 - Brain Connectivity Toolbox (Rubinov & Sporns, 2010). see [Homepage](https://sites.google.com/site/bctnet/)
 - EEGLab (Delorme & Makeig, 2004). see [Git Repo](https://github.com/sccn/eeglab)
 - Efficiency Cost Optimization (ECO; De Vico Fallani et al., 2017). see [Git Repo](https://github.com/devuci/3n)
