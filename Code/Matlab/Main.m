@@ -24,10 +24,10 @@ close
 current_file        = mfilename('fullpath');
 [current_dir, ~, ~] = fileparts(current_file);
 dir_Root            = fileparts(fileparts(current_dir));          % path to project
-dir_Raw             = fullfile(dir_Root, 'Data', 'TestData');      % path to raw data
-dir_Log             = fullfile(dir_Root, 'Data', 'TEST_Log');          % path where log data should be stored
-dir_Preproc         = fullfile(dir_Root, 'Data', 'TEST_Preprocessed'); % path where preprocessed data should be stored (will be created)
-dir_Connect         = fullfile(dir_Root, 'Data', 'TEST_Connectivity'); % path where connectivity data should be stored (will be created)
+dir_Raw             = fullfile(dir_Root, 'Data', 'RawData');      % path to raw data
+dir_Log             = fullfile(dir_Root, 'Data', 'Log');          % path where log data should be stored
+dir_Preproc         = fullfile(dir_Root, 'Data', 'Preprocessed'); % path where preprocessed data should be stored (will be created)
+dir_Connect         = fullfile(dir_Root, 'Data', 'Connectivity'); % path where connectivity data should be stored (will be created)
 combine_conn_files  = true;                                       % combine connectivity files into one file? Single files will be deleted.
 Overwrite           = true;                                       % overwrite existing files?
 nWorkers            = 12;                                         % for parfor

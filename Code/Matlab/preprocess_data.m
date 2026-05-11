@@ -80,7 +80,7 @@ nSubs               = length(Raw_Files);
 q = parallel.pool.DataQueue;
 afterEach(q, @(msg) fprintf('%s', msg));
 
-parfor i_Sub = 1:2%nSubs
+parfor i_Sub = 1:nSubs
 
     % Check if Subject has been preprocessed 
     if sum(contains(fileNames_PreProc,Raw_Files(i_Sub).name)) == 4 && ...
@@ -116,9 +116,8 @@ for i = 1:length(log_files)
 end
 
 % Adapt Table
-all_logs.Properties.VariableNames{'File Name'} = 'ID';
-splits = split(string(all_logs.ID), '_');
-all_logs.ID = splits(:, 1);
+all_logs.ID = string(all_logs.ID);
+all_logs.Run = string(all_logs.Run);
 all_logs.Condition = string(all_logs.Condition);
 
 % Save Table as csv File
@@ -463,11 +462,16 @@ try
                 artifact_ICs = NaN;
             end
 
-            Log_table = table({Raw_File.name(1:end-4)}, {Cond_FileName}, EEG_oAEC.trials, removed_epochs_oaec, EEG_phase.trials, removed_epochs_phase, numel(artifact_ICs), n_interp, ...
-                'VariableNames', {'File Name', 'Condition', 'oAEC Epochs', 'Removed oAEC Epochs', 'Phase Epochs', 'Removed Phase Epochs', 'ICs removed', 'Interpolated Channels'});
-            
             ID = strsplit(Raw_File.name, '_');
             ID = ID{1};
+
+            cond_splits = strsplit(Cond_FileName, '_');
+            run = cond_splits{1};
+            condition = [cond_splits{3} '_' cond_splits{4}]; 
+
+            Log_table = table({ID}, {run}, {condition}, EEG_oAEC.trials, removed_epochs_oaec, EEG_phase.trials, removed_epochs_phase, numel(artifact_ICs), n_interp, ...
+                'VariableNames', {'ID', 'Run', 'Condition', 'oAEC_Epochs', 'Removed_oAEC_Epochs', 'Phase_Epochs', 'Removed_Phase_Epochs', 'ICs_removed', 'Interpolated_Channels'});
+                        
             log_filename = fullfile(dir_Log, ['Log_', ID, '_', Cond_FileName, '.csv']);
             writetable(Log_table, log_filename);
 

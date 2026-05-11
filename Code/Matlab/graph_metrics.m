@@ -74,8 +74,7 @@ parfor i_File = 1:nFiles
 
     try
 
-        % Load Connectivity Data
-        tic
+        % Load Connectivity Data        
         InputFile = fullfile(Connect_Files(i_File).folder, Connect_Files(i_File).name);
         connectivity_data = load(InputFile);        
 
@@ -89,7 +88,7 @@ parfor i_File = 1:nFiles
         measures = fieldnames(connectivity_data);
         bands    = fieldnames(connectivity_data.(measures{1}));
         thresh   = fieldnames(connectivity_data.(measures{1}).(bands{1}));
-        thresh   = thresh(~strcmp('untresh', thresh));
+        thresh   = thresh(~strcmp('unthresh', thresh));
 
         % Create empty table
         headers = {'ID', 'Run', 'Condition', 'Percolation_Threshold'};
@@ -108,21 +107,23 @@ parfor i_File = 1:nFiles
         results.ID = splits{2};
         results.Run = 1;
         results.Condition = [splits{3} '_' splits{4}];
-        results.Percolation_Threshold = NaN;
+        results.Percolation_Threshold = NaN;        
 
-        switch GRAPH.metrics
+        % Loop through the whole structure file
+        for i_meas = 1:numel(measures)
 
-            case 'all'
+            for i_band = 1:numel(bands)
 
-                for i_meas = 1:numel(measures)
+                for i_thresh = 1:numel(thresh)
 
-                    for i_band = 1:numel(bands)
+                    am = connectivity_data.(measures{i_meas}).(bands{i_band}).(thresh{i_thresh});
+                    is_dens = strcmp(thresh{i_thresh}, 'dens');
 
-                        for i_thresh = 1:numel(thresh)
+                    switch GRAPH.metrics
 
-                            am = connectivity_data.(measures{i_meas}).(bands{i_band}).(thresh{i_thresh});
-                            
-                            if strcmp(thresh{i_thresh}, 'dens')
+                        case 'all'
+                    
+                            if is_dens
                                 [AUC_CC, AUC_PL, AUC_Eglob, AUC_Eloc, AUC_SW, ~, percol_thresh] = density_metrics_auc(am, GRAPH);
 
                                 header = sprintf('cc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
@@ -173,19 +174,89 @@ parfor i_File = 1:nFiles
                                 % Local Efficiency
                                 header = sprintf('eloc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 results.(header)(1) = mean(efficiency_bin(am,1));
-                                
+                        
                             end
-                        end % i_thresh
-                    end % i_band
-                end % i_meas
 
-            case 'cc'
-                % tbc
+                        case 'cc'
+                            if is_dens
+                                [~, ~, ~, ~, ~, AUC_metric, percol_thresh] = density_metrics_auc(am, GRAPH);
+
+                                header = sprintf('cc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                results.(header)(1) = AUC_metric;
+                                results.Percolation_Threshold = percol_thresh;
+
+                            else
+                                header = sprintf('cc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                results.(header)(1) = mean(clustering_coef_bu(am));
+                            end
+
+                        case 'pathl'
+                            if is_dens
+                                [~, ~, ~, ~, ~, AUC_metric, percol_thresh] = density_metrics_auc(am, GRAPH);
+
+                                header = sprintf('pathl_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                results.(header)(1) = AUC_metric;
+                                results.Percolation_Threshold = percol_thresh;
+
+                            else
+                                header = sprintf('pathl_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                [~,D] = reachdist(am);
+                                results.(header)(1) = mean(D(:));
+                            end
+
+                        case 'eglob'
+                            if is_dens
+                                [~, ~, ~, ~, ~, AUC_metric, percol_thresh] = density_metrics_auc(am, GRAPH);
+
+                                header = sprintf('eglob_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                results.(header)(1) = AUC_metric;
+                                results.Percolation_Threshold = percol_thresh;
+
+                            else
+                                header = sprintf('eglob_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                results.(header)(1) = efficiency_bin(am);
+                            end
+
+                        case 'eloc'
+                            if is_dens
+                                [~, ~, ~, ~, ~, AUC_metric, percol_thresh] = density_metrics_auc(am, GRAPH);
+                                header = sprintf('eloc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                results.(header)(1) = AUC_metric;
+                                results.Percolation_Threshold = percol_thresh;
+                            else
+                                header = sprintf('eloc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                results.(header)(1) = mean(efficiency_bin(am,1));
+                            end
+
+                        case 'smallworld'
+                            if is_dens
+                                [~, ~, ~, ~, ~, AUC_metric, percol_thresh] = density_metrics_auc(am, GRAPH);
+                                header = sprintf('smallworld_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                results.(header)(1) = AUC_metric;
+                                results.Percolation_Threshold = percol_thresh;
+                            else
+                                 header = sprintf('smallworld_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
+                                n = size(am,1);
+                                k = sum(am);
+                                m = sum(k)/2;
+                                Num_ER_repeats = 100;
+                                FLAG_Cws = 1;
+                                
+                                [Lrand,CrandWS] = NullModel_L_C(n,m,Num_ER_repeats,FLAG_Cws);
+                                Lrand_mean = mean(Lrand(Lrand < inf));
+                                [S_ws_MC,~,~] = small_world_ness(am,Lrand_mean,mean(CrandWS),FLAG_Cws);
+
+                                results.(header)(1) = S_ws_MC;
+                            end
+
+                    end % switch
+
+                end % i_thresh
+            end % i_band
+        end % i_meas           
                 
-        end % switch
         
-        all_results{i_File} = results;
-        toc
+        all_results{i_File} = results;        
         send(q, sprintf('[%d/%d] %s done\n', i_File, nFiles, Connect_Files(i_File).name));
 
     catch e
