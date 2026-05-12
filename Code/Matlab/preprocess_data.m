@@ -324,7 +324,7 @@ try
                 
             end
 
-            %% Step 8: wICA
+            %% Step 9: wICA
             if PREPROC.wICA
                 % Run ICA
                 addpath("wICA-master")
@@ -350,23 +350,23 @@ try
                 evalc("EEG = eeg_checkset(EEG);");
             end
 
-            %% Step 9: Interpolation
+            %% Step 10: Interpolation
             evalc("EEG = pop_select( EEG, 'chantype','EEG');");
             n_interp = length(EEG_interp.chanlocs) - length(EEG.chanlocs);
             evalc("EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');");
             evalc("EEG = eeg_checkset(EEG);");
 
-            %% Step 10: Re-referencing
+            %% Step 11: Re-referencing
             if PREPROC.CAV_Reference
                 evalc("EEG = pop_reref(EEG,[],'refloc',struct('labels',{'FCZ'},'type',{'EEG'},'ref', [], 'urchan', [], 'theta',{0},'radius',{0.127},'X',{0.388},'Y',{0},'Z',{0.922},'sph_theta',{0},'sph_phi',{67.2},'sph_radius',{1}, 'sph_theta_besa', [], 'sph_phi_besa', []));");
             end            
 
-            %% Step 11: Surface Laplacian
+            %% Step 12: Surface Laplacian
             if PREPROC.Surf_Lap
                 evalc("EEG = pop_currentdensity(EEG, 'method', 'finite');");
             end
 
-            %% Step 12: Check Channel Number
+            %% Step 13: Check Channel Number
             if length(EEG.chanlocs) ~= 59
                 msg = ['Incorrect Channel Number: ' num2str(length(EEG.chanlocs))];
                 error(msg)
@@ -389,7 +389,7 @@ try
             EEG.chanlocs = EEG.chanlocs(chIdx);
             evalc("EEG = eeg_checkset(EEG);");
 
-            %% Step 13: Epoching, Post-Epoching Artifacts, and Saving Data
+            %% Step 14: Epoching, Post-Epoching Artifacts, and Saving Data
             % Remove boundary events ?!?!?!
             EEG.event = EEG.event(~strcmp({EEG.event.type}, 'boundary'));
             switch PREPROC.Epoching
@@ -441,7 +441,7 @@ try
 
             end
 
-            %% Step 14: Log for Quality Assessment
+            %% Step 15: Log for Quality Assessment
             if ~exist('EEG_oAEC','var')
                 EEG_oAEC.trials = NaN;
             end
@@ -533,7 +533,7 @@ function EEG_out = post_epoch_artifacts(EEG_in)
     bad_Kurtosis = bad_Kurtosis.reject.rejkurt;
     Clean_Epochs_Mask(bad_Kurtosis) = 0;
     
-    % Probability open pop_jointprob
+    % Probability
     bad_Probability = pop_jointprob(EEG_in, 1, 1:EEG_in.nbchan,  threshold_SD, threshold_SD,0,0,0);
     bad_Probability = bad_Probability.reject.rejjp;
     Clean_Epochs_Mask(bad_Probability) = 0;
