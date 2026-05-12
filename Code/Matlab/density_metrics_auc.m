@@ -23,20 +23,45 @@ function [AUC_CC, AUC_PL, AUC_Eglob, AUC_Eloc, AUC_SW, AUC_metric, percol_thresh
 nsteps = numel(fieldnames(am));
 fields = fieldnames(am);
 
+if nsteps == 1
+    warning('off', 'backtrace')
+    warning("Percolation Threshold at 40% - AUC not defined.")
+    AUC_CC          = NaN;
+    AUC_PL          = NaN;
+    AUC_Eglob       = NaN;
+    AUC_Eloc        = NaN;
+    AUC_SW          = NaN;
+    AUC_metric      = NaN;
+    percol_thresh   = (40-nsteps+1) / 100;
+    return
+
+elseif nsteps == 0
+    warning('off', 'backtrace')
+    warning("Empty Adjacency Matrix. Percolation Threshold above 40%")
+    AUC_CC          = NaN;
+    AUC_PL          = NaN;
+    AUC_Eglob       = NaN;
+    AUC_Eloc        = NaN;
+    AUC_SW          = NaN;
+    AUC_metric      = NaN;
+    percol_thresh   = NaN;
+    return
+end
+
 % Initialise empty matrices
 switch GRAPH.metrics
 
     case 'all'
 
-        CC         = zeros(nsteps,1);
-        PL         = zeros(nsteps,1);
-        Eglob      = zeros(nsteps,1);
-        Eloc       = zeros(nsteps,1);
-        smallworld = zeros(nsteps,1);
+        CC         = zeros(1,nsteps);
+        PL         = zeros(1,nsteps);
+        Eglob      = zeros(1,nsteps);
+        Eloc       = zeros(1,nsteps);
+        smallworld = zeros(1,nsteps);
 
     otherwise
 
-        graph_metric = zeros(nsteps,1);
+        graph_metric = zeros(1,nsteps);
 
 end
 

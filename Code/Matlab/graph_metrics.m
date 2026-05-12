@@ -91,23 +91,31 @@ parfor i_File = 1:nFiles
         thresh   = thresh(~strcmp('unthresh', thresh));
 
         % Create empty table
-        headers = {'ID', 'Run', 'Condition', 'Percolation_Threshold'};
+        headers = {'ID', 'Run', 'Condition'};
+        for i_meas = 1:numel(measures)
+            for i_band = 1:numel(bands) 
+                headers{end+1} = sprintf('Percol_Thresh_%s_%s', measures{i_meas}, bands{i_band}); %#ok
+            end
+        end
+
         for i_metric = 1:numel(metrics)
             for i_meas = 1:numel(measures)
-                for i_band = 1:numel(bands)
+                for i_band = 1:numel(bands)                    
                     for i_thresh = 1:numel(thresh)
                         headers{end+1} = sprintf('%s_%s_%s_%s', metrics{i_metric}, measures{i_meas}, bands{i_band}, thresh{i_thresh}); %#ok
                     end
                 end
             end
-        end
+        end        
                 
-        results = array2table(zeros(1, numel(headers)), 'VariableNames', headers);
         splits = strsplit(Connect_Files(i_File).name, '_');
-        results.ID = splits{2};
-        results.Run = 1;
-        results.Condition = [splits{3} '_' splits{4}];
-        results.Percolation_Threshold = NaN;        
+        results = table();
+        results.ID        = {splits{2}};
+        results.Run       = 1;
+        results.Condition = {[splits{3} '_' splits{4}]};
+        for i_h = 4:numel(headers)
+            results.(headers{i_h}) = NaN;
+        end
 
         % Loop through the whole structure file
         for i_meas = 1:numel(measures)
@@ -141,7 +149,8 @@ parfor i_File = 1:nFiles
                                 header = sprintf('smallworld_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 results.(header)(1) = AUC_SW;
 
-                                results.Percolation_Threshold = percol_thresh;
+                                header = sprintf('Percol_Thresh_%s_%s', measures{i_meas}, bands{i_band});
+                                results.(header)(1) = percol_thresh;
                                 
                             else
                                 
@@ -183,7 +192,9 @@ parfor i_File = 1:nFiles
 
                                 header = sprintf('cc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 results.(header)(1) = AUC_metric;
-                                results.Percolation_Threshold = percol_thresh;
+
+                                header = sprintf('Percol_Thresh_%s_%s', measures{i_meas}, bands{i_band});
+                                results.(header)(1) = percol_thresh;
 
                             else
                                 header = sprintf('cc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
@@ -196,7 +207,9 @@ parfor i_File = 1:nFiles
 
                                 header = sprintf('pathl_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 results.(header)(1) = AUC_metric;
-                                results.Percolation_Threshold = percol_thresh;
+                                
+                                header = sprintf('Percol_Thresh_%s_%s', measures{i_meas}, bands{i_band});
+                                results.(header)(1) = percol_thresh;
 
                             else
                                 header = sprintf('pathl_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
@@ -210,7 +223,9 @@ parfor i_File = 1:nFiles
 
                                 header = sprintf('eglob_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 results.(header)(1) = AUC_metric;
-                                results.Percolation_Threshold = percol_thresh;
+                                
+                                header = sprintf('Percol_Thresh_%s_%s', measures{i_meas}, bands{i_band});
+                                results.(header)(1) = percol_thresh;
 
                             else
                                 header = sprintf('eglob_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
@@ -222,7 +237,9 @@ parfor i_File = 1:nFiles
                                 [~, ~, ~, ~, ~, AUC_metric, percol_thresh] = density_metrics_auc(am, GRAPH);
                                 header = sprintf('eloc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 results.(header)(1) = AUC_metric;
-                                results.Percolation_Threshold = percol_thresh;
+                                
+                                header = sprintf('Percol_Thresh_%s_%s', measures{i_meas}, bands{i_band});
+                                results.(header)(1) = percol_thresh;
                             else
                                 header = sprintf('eloc_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 results.(header)(1) = mean(efficiency_bin(am,1));
@@ -233,7 +250,9 @@ parfor i_File = 1:nFiles
                                 [~, ~, ~, ~, ~, AUC_metric, percol_thresh] = density_metrics_auc(am, GRAPH);
                                 header = sprintf('smallworld_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 results.(header)(1) = AUC_metric;
-                                results.Percolation_Threshold = percol_thresh;
+                                
+                                header = sprintf('Percol_Thresh_%s_%s', measures{i_meas}, bands{i_band});
+                                results.(header)(1) = percol_thresh;
                             else
                                  header = sprintf('smallworld_%s_%s_%s', measures{i_meas}, bands{i_band}, thresh{i_thresh});
                                 n = size(am,1);
@@ -285,7 +304,7 @@ all_results = vertcat(all_results{:});
 
 writetable(all_results, OutputFile);
 
-fprintf("Graph Metrics saved to %s", OutputFile)
+fprintf("\nGraph Metrics saved to %s\n", OutputFile)
 
 fprintf(['\n%s\n' ...
          'Finished Calculating Graph Metrics' ...

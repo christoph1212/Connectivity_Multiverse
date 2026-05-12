@@ -8,12 +8,13 @@
 % 1. Preprocessing
 % 2. Connectivity Analysis (Multiverse)
 % 3. Thresholding (Multiverse)
+% 4. Graph Theory Computation
 %
 % Make sure to set the folders according to your workspace and define
 % analysis configurations.
 %
 % Created by: Christoph Frühlinger
-% Last edited: April 2026
+% Last edited: May 2026
 
 %% Housekeeping
 clear
@@ -30,7 +31,7 @@ dir_Preproc         = fullfile(dir_Root, 'Data', 'Preprocessed'); % path where p
 dir_Connect         = fullfile(dir_Root, 'Data', 'Connectivity'); % path where connectivity data should be stored (will be created)
 combine_conn_files  = true;                                       % combine connectivity files into one file? Single files will be deleted.
 Overwrite           = true;                                       % overwrite existing files?
-nWorkers            = 12;                                         % for parfor
+nWorkers            = 12;                                         % for parfor - use [] for max
 
 % Start EEGLAB
 dir_eeglab          = fullfile(dir_Root, 'Code', 'Matlab', 'eeglab2026.0.0'); % adjust accordingly
@@ -68,7 +69,7 @@ end
 
 %% Analysis Configurations
 PREPROC = struct(...
-    'nWorkers',         nWorkers, ... % Number of Workers for parfor - use [] for max
+    'nWorkers',         nWorkers, ... % Number of Workers for parfor
     'Downsample',       false, ...    % Downsample to SR/2
     'HP_Filter',        1, ...        % High-Pass Filter
     'LP_Filter',        30, ...       % Low-Pass Filter
@@ -83,7 +84,7 @@ PREPROC = struct(...
 );
 
 CONNECTIVITY = struct(...
-    'nWorkers',         nWorkers, ... % Number of Workers for parfor - use [] for max
+    'nWorkers',         nWorkers, ... % Number of Workers for parfor
     'Bands',            'all', ...    % Frequency Bands: 'delta', 'theta', 'alpha1', 'alpha2', 'beta', or 'all'
     'Measures',         'all'  ...    % Connectivity Measures: 'imcoh', 'wpli', 'pli', 'pcoh', 'oaec', or 'all'
 );
@@ -109,14 +110,14 @@ disp(GRAPH)
 fprintf([repmat('=', 1, 100), '\n']);
 
 %% Preprocessing
-% preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
+preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
 % TEST_preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
 
 %% Connectivity Multiverse
-% connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
+connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
 
 %% Thresholding Multiverse
-% thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
+thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
 
 %% Graph Theory
-% graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
+graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
