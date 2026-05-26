@@ -20,6 +20,7 @@
 clear
 clc
 close
+start = tic;
 
 %% Setup
 current_file        = mfilename('fullpath');
@@ -110,14 +111,35 @@ disp(GRAPH)
 fprintf([repmat('=', 1, 100), '\n']);
 
 %% Preprocessing
-preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
-% TEST_preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
+%preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
+t_preproc = toc(start);
 
 %% Connectivity Multiverse
-connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
+t_connect_start = tic;
+%connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
+t_connect = toc(t_connect_start);
 
 %% Thresholding Multiverse
-thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
+t_thresh_start = tic;
+%thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
+t_thresh = toc(t_thresh_start);
 
 %% Graph Theory
-graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
+t_graph_start = tic;
+%graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
+t_graph = toc(t_graph_start);
+
+%% Wrap Up
+fprintf(['\n%s\n' ...
+        '<strong>Analysis Completed</strong>\n\n' ...
+         'Preprocessing took             %.2f hours\n' ...
+         'Connectivity Multiverse took   %.2f hours\n' ...
+         'Thresholding Multiverse took   %.2f hours\n' ...
+         'Graph Metrics Calculation took %.2f hours\n' ...
+         '%s'], ...
+         repmat('=', 1, 100), ...
+         t_preproc/3600, ...
+         t_connect/3600, ...
+         t_thresh/3600, ...
+         t_graph/3600, ...
+         repmat('=', 1, 100));

@@ -87,11 +87,6 @@ parfor i_File = 1:nFiles
         filesplits = split(Preproc_Files(i_File).name, '_');
         OutputFileName = [filesplits{6} '_', strjoin(filesplits(1:5), '_') '_connectivity.mat'];
         OutputFile = fullfile(dir_Connect, OutputFileName);
-
-        % FOR TESTING
-        % [~, name, ~] = fileparts(Preproc_Files(i_File).name)
-        % OutputFileName = [name, '_connectivity.mat'];
-        % OutputFile = fullfile(dir_Connect, OutputFileName);
     
         if isfile(OutputFile) && ~Overwrite
             continue
@@ -175,9 +170,6 @@ if combine_conn_files && strcmp(CONNECTIVITY.Measures, 'all')
         Filename_phase = phase_files(i_File).name;
         parts = strsplit(Filename_phase, '_');
         subID = strjoin(parts(1:5), '_');
-
-        % FOR TESTING
-        % subID = [strjoin(parts(1:2), '_'), '_', strjoin(parts(5:6), '_')];
          
         OutputFilename = [subID '_full_connectivity.mat'];
         % Check if file exists

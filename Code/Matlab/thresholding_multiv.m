@@ -144,7 +144,8 @@ parfor i_File = 1:nFiles
         % Save File as struct
         OutputFile = InputFile;
         save(OutputFile, '-fromstruct', connectivity_data)
-        send(q, sprintf('[%d/%d] %s saved\n', i_File, nFiles, InputFile));
+        [~,name,~] = fileparts(InputFile);
+        send(q, sprintf('[%d/%d] %s thresholded\n', i_File, nFiles, name));
 
     catch e
         ErrorMessage = string(e.message);
