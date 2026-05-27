@@ -34,6 +34,11 @@ combine_conn_files  = true;                                       % combine conn
 Overwrite           = true;                                       % overwrite existing files?
 nWorkers            = 12;                                         % for parfor - use [] for max
 
+RUN_PREPROC         = true;
+RUN_CONNECTIVITY    = true;
+RUN_THRESHOLD       = true;
+RUN_GRAPH           = true;
+
 % Start EEGLAB
 dir_eeglab          = fullfile(dir_Root, 'Code', 'Matlab', 'eeglab2026.0.0'); % adjust accordingly
 addpath(dir_eeglab);
@@ -111,22 +116,30 @@ disp(GRAPH)
 fprintf([repmat('=', 1, 100), '\n']);
 
 %% Preprocessing
-%preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
+if RUN_PREPROC
+    preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
+end
 t_preproc = toc(start);
 
 %% Connectivity Multiverse
 t_connect_start = tic;
-%connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
+if RUN_CONNECTIVITY 
+    connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
+end
 t_connect = toc(t_connect_start);
 
 %% Thresholding Multiverse
 t_thresh_start = tic;
-%thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
+if RUN_THRESHOLD
+    thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
+end
 t_thresh = toc(t_thresh_start);
 
 %% Graph Theory
 t_graph_start = tic;
-%graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
+if RUN_GRAPH
+    graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
+end
 t_graph = toc(t_graph_start);
 
 %% Wrap Up

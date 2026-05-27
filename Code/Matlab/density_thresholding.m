@@ -27,6 +27,12 @@ percolation_threshold = ceil(num_edges_mcc / max_edges * 100) / 100;
 % Create list of densities
 densities = percolation_threshold:0.01:0.4;
 
+if isempty(densities)
+    warning('Percolation threshold (%.2f) exceeds 40%%. Density thresholding not possible.', percolation_threshold);
+    binary = struct();
+    return
+end
+
 % Create empty struct
 binary = struct();
 

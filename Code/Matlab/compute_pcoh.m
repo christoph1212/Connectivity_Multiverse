@@ -93,7 +93,7 @@ for fi = 1:nfreqs
     for tr = 1:ntrials
         as_tr = squeeze(as_epochs(:,:,tr));
         S_tr  = (as_tr * as_tr') / npnts;
-        S = S + (S_tr + S_tr') / 2;  % explizit Hermitesch erzwingen
+        S = S + S_tr;
     end
     S = S / ntrials;
 

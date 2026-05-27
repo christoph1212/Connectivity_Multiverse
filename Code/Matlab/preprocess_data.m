@@ -106,14 +106,13 @@ fprintf('\nCompiling Log Files...\n')
 log_files = dir(fullfile(dir_Log, 'Log_*.csv'));
 
 % Initialize empty table
-all_logs = table();
-
+log_cell = cell(length(log_files), 1);
 for i = 1:length(log_files)
     fprintf('Reading Log file %d/%d\n', i, length(log_files))
     file = fullfile(dir_Log, log_files(i).name);
-    T = readtable(file, VariableNamingRule="preserve");
-    all_logs = [all_logs; T]; %#ok
+    log_cell{i} = readtable(file, VariableNamingRule="preserve");
 end
+all_logs = vertcat(log_cell{:});
 
 % Adapt Table
 all_logs.ID = string(all_logs.ID);

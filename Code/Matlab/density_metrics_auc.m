@@ -66,6 +66,9 @@ switch GRAPH.metrics
 end
 
 % Loop through densities and calculate metrics
+Num_ER_repeats = 100;
+FLAG_Cws = 1;
+
 for i_step = 1:nsteps
 
     current_am = am.(fields{i_step});
@@ -77,9 +80,7 @@ for i_step = 1:nsteps
             n = size(current_am,1);
             k = sum(current_am);
             m = sum(k)/2;
-            Num_ER_repeats = 100;
-            FLAG_Cws = 1;
-            
+                        
             [Lrand,CrandWS] = NullModel_L_C(n,m,Num_ER_repeats,FLAG_Cws);
             Lrand_mean = mean(Lrand(Lrand < inf));
             [S_ws_MC,C,L] = small_world_ness(current_am,Lrand_mean,mean(CrandWS),FLAG_Cws);
