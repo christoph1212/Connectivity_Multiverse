@@ -220,9 +220,10 @@ function connectivity_data = compute_measures(EEG, measures, current_band, freqb
             if contains(EEG.filename, 'oAEC')
                 connectivity_data.oaec.(current_band).unthresh = compute_oAEC(EEG, current_band, freqband);
             else
-                connectivity_data.imcoh.(current_band).unthresh = compute_imcoh(EEG, current_band, freqband);
-                connectivity_data.wpli.(current_band).unthresh = compute_wpli(EEG, current_band, freqband);
-                connectivity_data.pli.(current_band).unthresh = compute_pli(EEG, current_band, freqband);
+                AS = compute_analytic_signal(EEG, current_band, freqband);
+                connectivity_data.imcoh.(current_band).unthresh = compute_imcoh(EEG, current_band, freqband, AS);
+                connectivity_data.wpli.(current_band).unthresh = compute_wpli(EEG, current_band, freqband, AS);
+                connectivity_data.pli.(current_band).unthresh = compute_pli(EEG, current_band, freqband, AS);
                 connectivity_data.pcoh.(current_band).unthresh = compute_pcoh(EEG, current_band, freqband);
             end
     
