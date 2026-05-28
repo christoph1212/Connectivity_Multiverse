@@ -268,7 +268,7 @@ try
             if EEG.pnts < EEG.srate
                 fprintf('Dataset empty (%s: Condition: %s)\n', Raw_File.name, Cond_FileName);
                 
-                MissingDataFile = fullfile(dir_Log, ["Error_NotEnoughData_for_Preproc_", FileName, '.txt']);
+                MissingDataFile = fullfile(dir_Log, ['Error_NotEnoughData_for_Preproc_', FileName, '.txt']);
                 fid1 = fopen( MissingDataFile, 'wt' );
                 fprintf(fid1, 'Missing Data-File= %s \n Data only includes %i Points. \n', FileName,  EEG.pnts);
                 fclose(fid1);
@@ -352,6 +352,19 @@ try
             %% Step 10: Interpolation
             evalc("EEG = pop_select( EEG, 'chantype','EEG');");
             n_interp = length(EEG_interp.chanlocs) - length(EEG.chanlocs);
+
+            % Check number of n_interp and exclude
+            if n_interp > 5
+                fprintf('Too many interpolated Channels (%d) - %s: Condition: %s\n', n_interp, Raw_File.name, Cond_FileName);
+
+                ExludeDataFile = fullfile(dir_Log, ['Error_TooManyExcludedChannels_', FileName, '.txt']);
+                fid1 = fopen( ExludeDataFile, 'wt' );
+                fprintf(fid1, 'Excluded Data-File= %s \n Too many excluded channels %i. \n', FileName,  n_interp);
+                fclose(fid1);
+                continue                
+
+            end 
+
             evalc("EEG = pop_interp(EEG, EEG_interp.chanlocs, 'spherical');");
             evalc("EEG = eeg_checkset(EEG);");
 
