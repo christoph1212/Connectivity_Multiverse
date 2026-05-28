@@ -10,6 +10,14 @@ function A = ECOfilter(W,directed)
 %Reference "A topological criterion to filter information in complex brain
 %networks, De Vico Fallani et al, Plos Comp Biol, 2017
 
+% Christoph Frühlinger adapted:
+% Original:
+% W(sorind(numcon+1:end,1))=0;
+% New:
+% W(sorind(ceil(numcon)+1:end,1))=0;
+% Reason: 
+% numcon will always be a floating point number, ensures integer
+
 %%%
 
 N=size(W,1);
@@ -29,7 +37,7 @@ end
 
 sorind=sortrows([ind W(ind)],-2);
 
-W(sorind(numcon+1:end,1))=0;
+W(sorind(ceil(numcon)+1:end,1))=0; % CF adapted to ensure integer
 
 if directed
     A=double(logical(W));
