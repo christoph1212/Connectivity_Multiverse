@@ -110,9 +110,9 @@ parfor i_File = 1:nFiles
                 
         splits = strsplit(Connect_Files(i_File).name, '_');
         results = table();
-        results.ID        = {splits{2}};
-        results.Run       = 1;
-        results.Condition = {[splits{3} '_' splits{4}]};
+        results.ID        = {splits{1}}; %#ok
+        results.Run       = {splits{2}}; %#ok
+        results.Condition = {[splits{4} '_' splits{5}]};
         for i_h = 4:numel(headers)
             results.(headers{i_h}) = NaN;
         end

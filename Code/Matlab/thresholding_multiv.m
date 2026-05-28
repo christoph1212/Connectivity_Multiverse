@@ -121,18 +121,14 @@ parfor i_File = 1:nFiles
 
                     case 'omst'
 
-                        % orthogonalized Minimum Spanning Tree Thresholding
-                        omst_path = fullfile(dir_Root, 'Code', 'Matlab', 'OMST');
-                        addpath(omst_path);
+                        % orthogonalized Minimum Spanning Tree Thresholding                        
                         plot_gce = 0;                       
                         [~, CIJtree, ~,  ~, ~, ~] = threshold_omst_gce_wu(am, plot_gce);
                         connectivity_data.(current_measure).(current_band).omst = double(CIJtree > 0);
 
                     case 'eco'
 
-                        % Efficiency Cost Optimization Thresholding
-                        eco_path = fullfile(dir_Root, 'Code', 'Matlab', 'ECO');
-                        addpath(eco_path);
+                        % Efficiency Cost Optimization Thresholding                        
                         directed = 0;
                         connectivity_data.(current_measure).(current_band).eco = ECOfilter(am, directed);
 

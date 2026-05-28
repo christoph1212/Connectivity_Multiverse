@@ -177,7 +177,7 @@ if combine_conn_files && strcmp(CONNECTIVITY.Measures, 'all')
             continue
         end
     
-        oaec_pattern = [strjoin(parts(1:3), '_') '_oAEC_' strjoin(parts(5:6), '_') '*'];
+        oaec_pattern = [strjoin(parts(1:5), '_') '_oAEC_*'];
         oaec_match   = dir(fullfile(dir_Connect, oaec_pattern));
 
         if isempty(oaec_match)
