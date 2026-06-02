@@ -55,7 +55,22 @@ delete(gcp('nocreate')); % make sure that previous pooling is closed
 if isempty(THRESHOLD.nWorkers)
     parpool("Processes")
 else
-    parpool("Processes", THRESHOLD.nWorkers);
+    % parpool("Processes", THRESHOLD.nWorkers);
+    poolAvailable = false;
+
+    while ~poolAvailable
+        try
+            parpool('Processes', THRESHOLD.nWorkers);
+            poolAvailable = true;
+        catch ME
+            if contains(ME.message, 'license') || contains(ME.message, 'License')
+                fprintf('Parpool currently not available. Waiting 5 Minutes...\n');
+                pause(5*60);
+            else
+                rethrow(ME);
+            end
+        end
+    end
 end
 
 pctRunOnAll(['addpath(''' omst_path ''')']);

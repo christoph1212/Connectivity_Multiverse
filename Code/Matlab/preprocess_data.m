@@ -65,7 +65,22 @@ delete(gcp('nocreate')); % make sure that previous pooling is closed
 if isempty(PREPROC.nWorkers)
     parpool("Processes")
 else
-    parpool("Processes", PREPROC.nWorkers);
+    % parpool("Processes", PREPROC.nWorkers);
+    poolAvailable = false;
+
+    while ~poolAvailable
+        try
+            parpool('Processes', PREPROC.nWorkers);
+            poolAvailable = true;
+        catch ME
+            if contains(ME.message, 'license') || contains(ME.message, 'License')
+                fprintf('Parpool currently not available. Waiting 5 Minutes...\n');
+                pause(5*60);
+            else
+                rethrow(ME);
+            end
+        end
+    end
 end
 
 FileName            = '';
