@@ -269,6 +269,11 @@ try
             % Phase-based Files
             FileName_phase = [Rel_SplitStruct.Condition{i_cond},'_phase_',Raw_File.name];
 
+            % Remove EO conditions of run 2 and 3 (irrelevant for analysis)
+            if strcmp(Cond_FileName, 'second_run_eyes_open') || strcmp(Cond_FileName, 'third_run_eyes_open')
+                continue
+            end
+
             fprintf("Preprocessing File: %s, Condition: %s\n", Raw_File.name, Cond_FileName);
 
             % check if files exist already
@@ -417,7 +422,6 @@ try
             evalc("EEG = eeg_checkset(EEG);");
 
             %% Step 14: Epoching, Post-Epoching Artifacts, and Saving Data
-            % Remove boundary events ?!?!?!
             EEG.event = EEG.event(~strcmp({EEG.event.type}, 'boundary'));
             switch PREPROC.Epoching
                 case 'all'
