@@ -1,4 +1,4 @@
-function preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite, iSubset, NrSubsets)
+function preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite, Subject_Subset)
 %% Preprocessing EEG files
 % Run preprocessing 
 %
@@ -83,23 +83,21 @@ FileName            = '';
 InputFile           = '';
 Cond_FileName       = '';
 
+Files_PreProc       = dir(dir_Preproc);
+fileNames_PreProc   = {Files_PreProc.name};
+
 if nargin < 6
-    % Run Parfor
-    Files_PreProc       = dir(dir_Preproc);
-    fileNames_PreProc   = {Files_PreProc.name};
-    nSubs               = 1:length(Raw_Files);
+    nSubs           = length(Raw_Files);
 else
-    % Run Parfor on Slurm
-    Subsets             = round(linspace(0, numel(Raw_Files), NrSubsets + 1));
-    subsetIdx           = Subsets(iSubset)+1 : Subsets(iSubset+1);
-    nSubs               = subsetIdx;
+    Raw_Files       = Raw_Files(contains({Raw_Files.name}, Subject_Subset));
+    nSubs           = length(Raw_Files);
 end
 
 %% Looped preprocessing
 q = parallel.pool.DataQueue;
 afterEach(q, @(msg) fprintf('%s', msg));
 
-parfor i_Sub = nSubs
+parfor i_Sub = 1:nSubs
 
     % Check if Subject has been preprocessed 
     if sum(contains(fileNames_PreProc,Raw_Files(i_Sub).name)) == 4 && ...

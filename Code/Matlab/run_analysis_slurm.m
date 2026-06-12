@@ -1,8 +1,10 @@
+function run_analysis_slurm(iSubset, NrSubsets)
 %% Main Analysis Script
 %
 % This script is the main file for the study "Robustness of EEG Functional 
 % Brain Networks Associated with Fluid Intelligence: A Multiverse Analysis 
-% of Connectivity and Thresholding Methods". 
+% of Connectivity and Thresholding Methods", but as a function to be used
+% on slurm.
 % 
 % It runs:
 % 1. Preprocessing
@@ -14,10 +16,9 @@
 % analysis configurations.
 %
 % Created by: Christoph Frühlinger
-% Last edited: May 2026
+% Last edited: June 2026
 
 %% Housekeeping
-clear
 clc
 close
 start = tic;
@@ -116,9 +117,16 @@ fprintf('   <strong>Graph Theory</strong>\n')
 disp(GRAPH)
 fprintf([repmat('=', 1, 100), '\n']);
 
+%% Slurm Subsets
+Raw_Files      = dir(fullfile(dir_Raw, '**/*.set'));
+AllSubjects    = unique(extractBefore(string({Raw_Files.name}), '_'));
+Subsets        = round(linspace(0, numel(AllSubjects), NrSubsets + 1));
+subsetIdx      = Subsets(iSubset)+1 : Subsets(iSubset+1);
+Subject_Subset = AllSubjects(subsetIdx);
+
 %% Preprocessing
 if RUN_PREPROC
-    preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
+    preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite, Subject_Subset)
 end
 t_preproc = toc(start);
 
@@ -181,4 +189,6 @@ else
     secs  = mod(t, 60);
     str   = sprintf('%dd %02dh %02dm %02.0fs', days, hours, mins, secs);
 end
+end
+
 end
