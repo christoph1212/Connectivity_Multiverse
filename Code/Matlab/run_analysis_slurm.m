@@ -133,21 +133,21 @@ t_preproc = toc(start);
 %% Connectivity Multiverse
 t_connect_start = tic;
 if RUN_CONNECTIVITY 
-    connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
+    connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite, Subject_Subset)
 end
 t_connect = toc(t_connect_start);
 
 %% Thresholding Multiverse
 t_thresh_start = tic;
 if RUN_THRESHOLD
-    thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
+    thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite, Subject_Subset)
 end
 t_thresh = toc(t_thresh_start);
 
 %% Graph Theory
 t_graph_start = tic;
 if RUN_GRAPH
-    graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
+    graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite, Subject_Subset)
 end
 t_graph = toc(t_graph_start);
 
