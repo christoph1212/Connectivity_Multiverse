@@ -33,6 +33,7 @@ dir_Connect         = fullfile(dir_Root, 'Data', 'Connectivity'); % path where c
 combine_conn_files  = true;                                       % combine connectivity files into one file? Single files will be deleted.
 Overwrite           = true;                                       % overwrite existing files?
 nWorkers            = 12;                                         % for parfor - use [] for max
+slurm               = true;                                       % use slurm?
 
 % Select steps
 RUN_PREPROC         = true;
@@ -116,9 +117,19 @@ fprintf('   <strong>Graph Theory</strong>\n')
 disp(GRAPH)
 fprintf([repmat('=', 1, 100), '\n']);
 
+%% Slurm
+if slurm
+    iSubset   = 1;
+    NrSubsets = 200;
+end
+
 %% Preprocessing
 if RUN_PREPROC
-    preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite)
+    if slurm
+        preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite, iSubset, NrSubsets)
+    else
+        preprocess_data(dir_Raw, dir_Log, dir_Preproc, PREPROC, Overwrite) %#ok
+    end
 end
 t_preproc = toc(start);
 
