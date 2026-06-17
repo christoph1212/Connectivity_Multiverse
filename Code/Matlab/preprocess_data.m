@@ -317,8 +317,10 @@ try
 
                 evalc("EEG_cleaned = clean_artifacts(EEG, args{:});");
 
-                Clean_Channel_Mask = EEG_cleaned.etc.clean_channel_mask; %#ok
-                evalc("EEG = pop_select( EEG, 'channel', {EEG.chanlocs(find(Clean_Channel_Mask)).labels});");
+                if isfield(EEG_cleaned.etc, 'clean_channel_mask')
+                    Clean_Channel_Mask = EEG_cleaned.etc.clean_channel_mask; %#ok
+                    evalc("EEG = pop_select( EEG, 'channel', {EEG.chanlocs(find(Clean_Channel_Mask)).labels});");
+                end
 
             end
 
