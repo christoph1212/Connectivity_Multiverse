@@ -35,9 +35,9 @@ Overwrite           = true;                                       % overwrite ex
 nWorkers            = 12;                                         % for parfor - use [] for max
 
 % Select steps
-RUN_PREPROC         = true;
-RUN_CONNECTIVITY    = true;
-RUN_THRESHOLD       = true;
+RUN_PREPROC         = false;
+RUN_CONNECTIVITY    = false;
+RUN_THRESHOLD       = false;
 RUN_GRAPH           = true;
 
 % Start EEGLAB
