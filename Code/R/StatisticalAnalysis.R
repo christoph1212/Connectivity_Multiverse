@@ -518,4 +518,4 @@ print(p_spec)
 
 # Save Plot
 ggsave("Plots/H2_specification_curve.png", p_spec,
-      width = 14, height = 10, dpi = 600)
+      width = 14, height = 10, dpi = 600, bg = "white")
