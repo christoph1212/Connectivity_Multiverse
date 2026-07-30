@@ -1,4 +1,4 @@
-function thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite, Subject_Subset)
+function thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrite)
 %% Connectivity Analysis - Thresholding Multiverse
 % Run:
 %   (1) Thresholding Multiverse
@@ -19,6 +19,10 @@ function thresholding_multiv(dir_Root, dir_Connect, dir_Log, THRESHOLD, Overwrit
 % Last edited: April 2026
 
 %% get from function input
+if nargin < 4    
+    Overwrite = false;
+end
+
 fprintf(['\n%s\n' ...
          'Starting Thresholding' ...
          '\n%s\n'], ...
@@ -72,13 +76,7 @@ end
 pctRunOnAll(['addpath(''' omst_path ''')']);
 pctRunOnAll(['addpath(''' eco_path  ''')']);
 
-if nargin < 6
-    nFiles          = length(Connect_Files);
-else
-    Connect_Files   = Connect_Files(contains({Connect_Files.name}, Subject_Subset));
-    nFiles          = length(Connect_Files);
-end
-
+nFiles          = length(Connect_Files);
 
 %% Loop over Files
 q = parallel.pool.DataQueue;

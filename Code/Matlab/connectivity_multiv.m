@@ -1,4 +1,4 @@
-function connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite, Subject_Subset)
+function connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, combine_conn_files, Overwrite)
 %% Connectivity Analysis
 % Run:
 %   (1) Morlet Wavelet Decomposition
@@ -23,6 +23,14 @@ function connectivity_multiv(dir_Preproc, dir_Log, dir_Connect, CONNECTIVITY, co
 % Last edited: April 2026
 
 %% get from function input
+if nargin < 5
+    combine_conn_files = false;
+end
+
+if nargin < 6
+    Overwrite = false;
+end
+
 fprintf(['\n%s\n' ...
          'Starting Connectivity Analysis' ...
          '\n%s\n'], ...
@@ -72,12 +80,7 @@ else
     end
 end
 
-if nargin < 7
-    nFiles          = length(Preproc_Files);
-else
-    Preproc_Files   = Preproc_Files(contains({Preproc_Files.name}, Subject_Subset));
-    nFiles          = length(Preproc_Files);
-end
+nFiles          = length(Preproc_Files);
 
 %% Morlet-Wavelet Decomposition
 freqbands_struct = struct(...
@@ -172,7 +175,6 @@ if combine_conn_files && strcmp(CONNECTIVITY.Measures, 'all')
     fprintf("\n\nConnectivity Analysis completed.\n\nCombining files. Please wait...\n")
 
     connectivity_files = dir(fullfile(dir_Connect, '*.mat'));
-    connectivity_files = connectivity_files(contains({connectivity_files.name}, Subject_Subset));
     [~, sort_idx] = sort({connectivity_files.name});
     connectivity_files = connectivity_files(sort_idx);
 

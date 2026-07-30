@@ -117,28 +117,28 @@ parfor i_Sub = 1:nSubs
 
 end
 
-% fprintf('\nCompiling Log Files...\n')
-% 
-% % Set path and load files
-% log_files = dir(fullfile(dir_Log, 'Log_*.csv'));
-% 
-% % Initialize empty table
-% log_cell = cell(length(log_files), 1);
-% for i = 1:length(log_files)
-%     fprintf('Reading Log file %d/%d\n', i, length(log_files))
-%     file = fullfile(dir_Log, log_files(i).name);
-%     log_cell{i} = readtable(file, VariableNamingRule="preserve");
-% end
-% all_logs = vertcat(log_cell{:});
-% 
-% % Adapt Table
-% all_logs.ID = string(all_logs.ID);
-% all_logs.Run = string(all_logs.Run);
-% all_logs.Condition = string(all_logs.Condition);
-% 
-% % Save Table as csv File
-% writetable(all_logs, LogFilename);
-% fprintf('Compiled Log File saved to %s\n', LogFilename);
+fprintf('\nCompiling Log Files...\n')
+
+% Set path and load files
+log_files = dir(fullfile(dir_Log, 'Log_*.csv'));
+
+% Initialize empty table
+log_cell = cell(length(log_files), 1);
+for i = 1:length(log_files)
+    fprintf('Reading Log file %d/%d\n', i, length(log_files))
+    file = fullfile(dir_Log, log_files(i).name);
+    log_cell{i} = readtable(file, VariableNamingRule="preserve");
+end
+all_logs = vertcat(log_cell{:});
+
+% Adapt Table
+all_logs.ID = string(all_logs.ID);
+all_logs.Run = string(all_logs.Run);
+all_logs.Condition = string(all_logs.Condition);
+
+% Save Table as csv File
+writetable(all_logs, LogFilename);
+fprintf('Compiled Log File saved to %s\n', LogFilename);
 
 fprintf(['\n%s\n' ...
      'Finished Preprocessing' ...
