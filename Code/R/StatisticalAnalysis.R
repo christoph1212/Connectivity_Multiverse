@@ -441,9 +441,9 @@ incomplete_facets <- plot_df %>%
 if (nrow(incomplete_facets) > 0) {
   message(
     nrow(incomplete_facets),
-    " von ", length(bands) * length(measures),
-    " Facetten haben weniger als ", n_specs_full,
-    " Spezifikationen (fehlende Spalten/NA-Modelle)."
+    " of ", length(bands) * length(measures),
+    " facets have less than ", n_specs_full,
+    " specifications (missing columns/NA-models)."
   )
 }
 
