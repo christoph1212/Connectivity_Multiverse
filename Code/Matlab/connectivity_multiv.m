@@ -175,47 +175,73 @@ if combine_conn_files && strcmp(CONNECTIVITY.Measures, 'all')
     fprintf("\n\nConnectivity Analysis completed.\n\nCombining files. Please wait...\n")
 
     connectivity_files = dir(fullfile(dir_Connect, '*.mat'));
+
+    if nargin < 7
+        connectivity_files = connectivity_files(contains({connectivity_files.name}, Subject_Subset));
+    end
+
     [~, sort_idx] = sort({connectivity_files.name});
     connectivity_files = connectivity_files(sort_idx);
 
     phase_files = connectivity_files(contains({connectivity_files.name}, 'phase'));
 
     for i_File = 1:length(phase_files)
-        % Get Sub-ID from 1st File
-        Filename_phase = phase_files(i_File).name;
-        parts = strsplit(Filename_phase, '_');
-        subID = strjoin(parts(1:5), '_');
-         
-        OutputFilename = [subID '_full_connectivity.mat'];
-        % Check if file exists
-        if isfile(fullfile(dir_Connect, OutputFilename))
-            continue
-        end
+        try
+            % Get Sub-ID from 1st File
+            Filename_phase = phase_files(i_File).name;
+            parts = strsplit(Filename_phase, '_');
+            subID = strjoin(parts(1:5), '_');
+             
+            OutputFilename = [subID '_full_connectivity.mat'];
+            % Check if file exists
+            if isfile(fullfile(dir_Connect, OutputFilename))
+                % continue
+            end
+        
+            oaec_pattern = [strjoin(parts(1:5), '_') '_oAEC_*'];
+            oaec_match   = dir(fullfile(dir_Connect, oaec_pattern));
     
-        oaec_pattern = [strjoin(parts(1:5), '_') '_oAEC_*'];
-        oaec_match   = dir(fullfile(dir_Connect, oaec_pattern));
+            if isempty(oaec_match)
+                warning("No matching oAEC file found for: %s", Filename_phase)
+                continue
+            elseif length(oaec_match) > 1
+                warning("Multiple oAEC matches for %s – skipping.", subID)
+                continue
+            end
+    
+            fprintf("Combining file %d/%d: %s\n", i_File, length(phase_files), subID)
+    
+            file_phase = fullfile(phase_files(i_File).folder, phase_files(i_File).name);
+            file_oaec = fullfile(oaec_match(1).folder, oaec_match(1).name);
+    
+            connectivity_matrix       = load(file_phase);
+            oaec_data                 = load(file_oaec);
+            connectivity_matrix.oaec  = oaec_data.oaec;
+    
+            OutputFile = fullfile(dir_Connect, OutputFilename);
+            save(OutputFile, '-fromstruct', connectivity_matrix)
+            delete(file_phase, file_oaec)
+            fprintf("%s saved - Deleted single files\n", OutputFilename)
 
-        if isempty(oaec_match)
-            warning("No matching oAEC file found for: %s", Filename_phase)
-            continue
-        elseif length(oaec_match) > 1
-            warning("Multiple oAEC matches for %s – skipping.", subID)
-            continue
+        catch e
+            ErrorMessage = string(e.message);
+            for ierrors = 1:length(e.stack)
+                ErrorMessage = strcat(ErrorMessage, " // ", e.stack(ierrors).name, ", Line: ",  num2str(e.stack(ierrors).line));
+            end
+
+            fprintf('***Error in File: %s;\n%s.\n', Filename_phase, ErrorMessage);
+
+            % make error log
+            [~, ErrorFile, ext] = fileparts(Filename_phase);
+            ErrorFile = [ErrorFile ext];
+            fprintf('Problem executing File: %s\n',ErrorFile);
+            fprintf('The Error Message is: \n%s \n',ErrorMessage);
+            [~, ErrorFile, ~] = fileparts(ErrorFile);
+            ErrorFile = fullfile(dir_Log, ['Error_Connect_', ErrorFile, '.txt']);
+            fid1 = fopen(ErrorFile, 'wt');
+            fprintf(fid1, 'Error-Subject: %s \nThe returned Error Message is: \n\n%s \n', Filename_phase,  ErrorMessage);
+            fclose(fid1);
         end
-
-        fprintf("Combining file %d/%d: %s\n", i_File, length(phase_files), subID)
-
-        file_phase = fullfile(phase_files(i_File).folder, phase_files(i_File).name);
-        file_oaec = fullfile(oaec_match(1).folder, oaec_match(1).name);
-
-        connectivity_matrix       = load(file_phase);
-        oaec_data                 = load(file_oaec);
-        connectivity_matrix.oaec  = oaec_data.oaec;
-
-        OutputFile = fullfile(dir_Connect, OutputFilename);
-        save(OutputFile, '-fromstruct', connectivity_matrix)
-        delete(file_phase, file_oaec)
-        fprintf("%s saved - Deleted single files\n", OutputFilename)
 
     end
     fprintf("\nCombining files completed.\n")
