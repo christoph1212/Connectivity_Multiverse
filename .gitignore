@@ -1,17 +1,18 @@
 Präregistrierung/*
 
+Results/**
+
+Manuscript/**
+
 Code/Matlab/eeglab2026.0.0/*
 Code/Matlab/Quality_Checks.m
 Code/Matlab/untitled2.m
-
 
 Data/**
 !Data/RawData/
 !Data/RawData/.gitignore
 
 *.asv
-
-Results/**
 
 *.Rproj.user/
 .Rhistory
