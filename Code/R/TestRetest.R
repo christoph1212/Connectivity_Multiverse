@@ -21,7 +21,7 @@ rm(list = ls())
 set.seed(42)
 
 # Create output folder
-savepath = "Plots/"
+savepath = "Results/"
 
 # Load data
 datapath         <- "Data/Connectivity/Graph_data.csv"
@@ -148,7 +148,13 @@ for (cond2 in otherconds) {
                             pathl = 'Characteristic Path Length',
                             eglob =  'Global Efficiency',
                             eloc = 'Local Efficiency',
-                            smallworld = "Small-Worldness"))
+                            smallworld = "Small-Worldness"),
+           Band = recode(Band,
+                         delta = 'Delta',
+                         theta = 'Theta',
+                         alpha1 = 'Alpha-1',
+                         alpha2 = 'Alpha-2',
+                         beta = 'Beta'))
   
   limits = c(0, .75)
   

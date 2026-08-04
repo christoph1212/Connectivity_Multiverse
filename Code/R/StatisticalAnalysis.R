@@ -41,6 +41,12 @@ main_path_conn   <- "imcoh"
 main_path_thresh <- "dens"
 data <- read.csv(datapath)
 
+eco_smallworld_cols <- grep("smallworld_.*_eco$", colnames(data), value = TRUE)
+
+data <- data %>%
+  mutate(across(all_of(eco_smallworld_cols),
+                ~ ifelse(.x == 0 | .x > 1, NA, .x)))
+
 # Select main path columns
 pattern        <- paste('[a-z0-9]+', main_path_conn, '[a-z0-9]+', main_path_thresh, sep = '_')
 main_path_cols <- grep(pattern, colnames(data), value = TRUE)
@@ -183,7 +189,9 @@ results_df <- results_df %>%
 plan(sequential)
 
 # Print results
-print(results_df)
+print(results_df, n = nrow(results_df))
+
+write.csv(results_df, "Results/H1_mainpath_results.csv")
 
 # ------------------------------------------------------------------------------
 # Hypothesis 2
@@ -448,16 +456,16 @@ if (nrow(incomplete_facets) > 0) {
 }
 
 # Coloring
-col_main  <- "#E63946"
-col_other <- "#A8DADC"
+col_main  <- "#D55E00"
+col_other <- "#0072B2"
 col_zero  <- "grey40"
 
 # Labeling
 band_labels <- c(
   "delta"  = "Delta",
   "theta"  = "Theta",
-  "alpha1" = "Alpha 1",
-  "alpha2" = "Alpha 2",
+  "alpha1" = "Alpha-1",
+  "alpha2" = "Alpha-2",
   "beta"   = "Beta"
 )
 
@@ -475,10 +483,10 @@ main_path_label <- paste0("Main path (ImCoh • Density-based Thresholding)")
 p_spec <- ggplot(plot_df, aes(x = spec_index, y = beta)) +
   geom_linerange(
     aes(ymin = ci_lower, ymax = ci_upper, color = main_path),
-    linewidth = 0.5, alpha = 0.6
+    linewidth = 0.75, alpha = 0.7
   ) +
   geom_point(
-    aes(color = main_path, size = main_path, shape = main_path)
+    aes(color = main_path) # , size = main_path, shape = main_path)
   ) +
   geom_hline(yintercept = 0, linetype = "dashed", color = col_zero, linewidth = 0.4) +
   scale_color_manual(
@@ -504,9 +512,9 @@ p_spec <- ggplot(plot_df, aes(x = spec_index, y = beta)) +
     y     = "Standardized β",
     color = NULL
   ) +
-  theme_minimal(base_size = 11) +
+  theme_minimal(base_size = 16) +
   theme(
-    strip.text         = element_text(size = 9, face = "bold"),
+    strip.text         = element_text(size = 16, face = "bold"),
     legend.position     = "bottom",
     panel.grid.minor    = element_blank(),
     panel.grid.major.x  = element_blank(),
@@ -517,5 +525,5 @@ p_spec <- ggplot(plot_df, aes(x = spec_index, y = beta)) +
 print(p_spec)
 
 # Save Plot
-ggsave("Plots/H2_specification_curve.png", p_spec,
+ggsave("Results/H2_specification_curve.png", p_spec,
       width = 14, height = 10, dpi = 600, bg = "white")
