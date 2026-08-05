@@ -84,21 +84,18 @@ levels(socio_table$monthlyBruttoIncome)[levels(socio_table$monthlyBruttoIncome) 
 socio_fullSample <- socio_table %>% 
   filter(ID %in% subs)
 
-# Add missing sub
-# socio_fullSample <- socio_fullSample %>%
-#   add_row(ID = "sub-NN04AN26")
-
 # Calculate descriptive statistics of the sample demographics
 # absolute Values
 table(socio_fullSample$HighestDegree, useNA = "always")
 table(socio_fullSample$Occupancy, useNA = "always")
 table(socio_fullSample$Ethnicity, useNA = "always")
+table(socio_fullSample$Gender, useNA = "always")
 
 # relative Values
 prop.table(table(socio_fullSample$HighestDegree, useNA = "always"))
 prop.table(table(socio_fullSample$Occupancy, useNA = "always"))
 prop.table(table(socio_fullSample$Ethnicity, useNA = "always"))
-
+prop.table(table(socio_fullSample$Gender, useNA = "always"))
 
 # Calculate McDonald's Omega
 CC_omega <- omega(main_path_data %>%
