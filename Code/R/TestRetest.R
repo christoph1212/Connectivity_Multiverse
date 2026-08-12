@@ -136,14 +136,14 @@ for (conn in conn_measures) {
       }
     }
     
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Plotting
-    # ------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     
     correlations$Band       <- as.factor(correlations$Band)
     correlations$Band       <- factor(correlations$Band, 
-                                      levels = c("delta", "theta", "alpha1", "alpha2",
-                                                 "beta"))
+                                      levels = c("delta", "theta", "alpha1", 
+                                                 "alpha2", "beta"))
     correlations$Condition1 <- as.factor(correlations$Condition1)
     correlations$Condition2 <- as.factor(correlations$Condition2)
     correlations$Feature    <- as.factor(correlations$Feature)
@@ -173,10 +173,13 @@ for (conn in conn_measures) {
       
       limits = c(0, .85)
       
-      heatmap_plot_list[[cond2]] <- ggplot(heatmap_data, aes(x = Feature, y = Band, 
-                                                             fill = SpearmanRho)) +
+      heatmap_plot_list[[cond2]] <- ggplot(heatmap_data, aes(x = Feature, 
+                                                             y = Band, 
+                                                             fill = SpearmanRho)
+                                           ) +
         geom_tile(color = "white") +
-        geom_text(aes(label = round(SpearmanRho, 2)), color = "black", size = 4) +
+        geom_text(aes(label = round(SpearmanRho, 2)), 
+                  color = "black", size = 4) +
         labs(title = condnames[match(cond2, otherconds)]) +
         theme_minimal(base_size = 14) +
         theme(axis.text.x = element_text(angle = 45, hjust = 1),
@@ -203,9 +206,77 @@ for (conn in conn_measures) {
                                rel_heights = c(0.1, 1))
     }
     
-    retest_filename <- paste0(savepath, conn, '_', thresh, '_', 'retest_correlations.png')
+    retest_filename <- paste0(savepath, conn, '_', thresh, '_', 
+                              'retest_correlations.png')
     
     ggsave(filename = retest_filename, plot = retest_grid, width = 16, 
            height = 4, dpi = 300, bg = "white")
   }
 }
+
+# ------------------------------------------------------------------------------
+# Exploratory ICC Analysis for Main Path and EC Conditions
+# ------------------------------------------------------------------------------
+library(psych)
+
+ec_conds <- c("first_eyes_closed", "second_eyes_closed", "third_eyes_closed")
+
+# Select Main Path
+main_path_conn   <- "imcoh"
+main_path_thresh <- "dens"
+
+pattern        <- paste('[a-z0-9]+', main_path_conn, '[a-z0-9]+', 
+                        main_path_thresh, sep = '_')
+main_path_cols <- grep(pattern, colnames(data), value = TRUE)
+main_path_data <- data[, c('ID', 'SetCond', main_path_cols)]
+
+icc_results <- tibble()
+
+for (measure in feat_vars) {
+  for (band in bands) {
+    
+    col_name <- paste(measure, main_path_conn, band, 
+                      main_path_thresh, sep = "_")
+    
+    if (!col_name %in% colnames(main_path_data)) {
+      next
+    }
+    
+    wide_data <- main_path_data %>%
+      filter(SetCond %in% ec_conds) %>%
+      dplyr::select(ID, SetCond, all_of(col_name)) %>%
+      pivot_wider(names_from  = SetCond,
+                  values_from = all_of(col_name)) %>%
+      dplyr::select(-ID) %>%
+      na.omit()
+    
+    icc_fit <- psych::ICC(wide_data)
+    
+    # ICC3 = Two-Way Mixed, Consistency (Single Measures)
+    icc_val  <- icc_fit$results["Single_fixed_raters", "ICC"]
+    icc_low  <- icc_fit$results["Single_fixed_raters", "lower bound"]
+    icc_high <- icc_fit$results["Single_fixed_raters", "upper bound"]
+    icc_p    <- icc_fit$results["Single_fixed_raters", "p"]
+    
+    icc_results <- bind_rows(icc_results,
+                             tibble(
+                               measure  = measure,
+                               band     = band,
+                               icc      = round(icc_val,  3),
+                               ci_lower = round(icc_low,  3),
+                               ci_upper = round(icc_high, 3),
+                               p        = round(icc_p,    4),
+                               n        = nrow(wide_data)
+                             )
+    )
+  }
+}
+
+icc_results <- icc_results %>%
+  mutate(
+    measure = factor(measure, levels = feat_vars),
+    band    = factor(band,    levels = bands)
+  ) %>%
+  arrange(measure, band)
+
+print(icc_results, n = 25)
