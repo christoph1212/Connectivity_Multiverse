@@ -38,7 +38,14 @@ fprintf(['\n%s\n' ...
          repmat('=', 1, 100));
 
 %% Prepare List of Files to be Processed
-Preproc_Files   = dir(fullfile(dir_Preproc, '**/*.set'));  
+switch CONNECTIVITY.Measures
+    case 'all'
+        Preproc_Files   = dir(fullfile(dir_Preproc, '**/*.set'));
+    case 'oaec'
+        Preproc_Files   = dir(fullfile(dir_Preproc, '**/*oAEC*.set'));
+    otherwise
+        Preproc_Files   = dir(fullfile(dir_Preproc, '**/*phase*.set'));
+end
 
 %% Directory where file should be saved
 dir_Log         = fullfile(dir_Log, 'Connectivity');
@@ -269,19 +276,39 @@ function connectivity_data = compute_measures(EEG, measures, current_band, freqb
             end
     
         case 'imcoh'
-            connectivity_data.imcoh.(current_band).unthresh = compute_imcoh(EEG, current_band, freqband);
+            if contains(EEG.filename, 'phase')
+                connectivity_data.imcoh.(current_band).unthresh = compute_imcoh(EEG, current_band, freqband);
+            else
+                return
+            end
     
         case 'wpli'
-            connectivity_data.wpli.(current_band).unthresh = compute_wpli(EEG, current_band, freqband);
+            if contains(EEG.filename, 'phase')
+                connectivity_data.wpli.(current_band).unthresh = compute_wpli(EEG, current_band, freqband);
+            else
+                return
+            end
     
         case 'pli'
-            connectivity_data.pli.(current_band).unthresh = compute_pli(EEG, current_band, freqband);
+            if contains(EEG.filename, 'phase')
+                connectivity_data.pli.(current_band).unthresh = compute_pli(EEG, current_band, freqband);
+            else
+                return
+            end
     
         case 'pcoh'
-            connectivity_data.pcoh.(current_band).unthresh = compute_pcoh(EEG, current_band, freqband);
+            if contains(EEG.filename, 'phase')
+                connectivity_data.pcoh.(current_band).unthresh = compute_pcoh(EEG, current_band, freqband);
+            else
+                return
+            end
     
         case 'oaec'
-            connectivity_data.oaec.(current_band).unthresh = compute_oAEC(EEG, current_band, freqband);
+            if contains(EEG.filename, 'oAEC')
+                connectivity_data.oaec.(current_band).unthresh = compute_oAEC(EEG, current_band, freqband);
+            else
+                return
+            end
     
     end % CONNECTIVITY.Measures
 end

@@ -128,7 +128,7 @@ for i = 1:nchans
         end
 
         % Mean oAEC
-        oaec_final = mean(oaec_all, "omitnan");
+        oaec_final = mean(abs(oaec_all), "omitnan");
 
         adj_matrix(i,j) = oaec_final;
         adj_matrix(j,i) = oaec_final; % mirror
