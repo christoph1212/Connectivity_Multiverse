@@ -428,7 +428,7 @@ try
             evalc("EEG = eeg_checkset(EEG);");
 
             %% Step 14: Epoching, Post-Epoching Artifacts, and Saving Data
-            EEG.event = EEG.event(~strcmp({EEG.event.type}, 'boundary'));
+            % EEG.event = EEG.event(~strcmp({EEG.event.type}, 'boundary'));
             switch PREPROC.Epoching
                 case 'all'
                     % 6-seconds with 2-seconds overlap

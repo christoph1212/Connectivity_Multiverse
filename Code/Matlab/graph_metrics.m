@@ -1,4 +1,4 @@
-function graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
+function graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite, Subject_Subset)
 %% Connectivity Analysis - Graph Theory
 % Run:
 %   (1) Calculate graph-theoretic metrics
@@ -19,10 +19,6 @@ function graph_metrics(dir_Connect, dir_Log, GRAPH, Overwrite)
 % Last edited: May 2026
 
 %% get from function input
-if nargin < 4    
-    Overwrite = false;
-end
-
 fprintf(['\n%s\n' ...
          'Calculating Graph Metrics' ...
          '\n%s\n'], ...
@@ -31,7 +27,13 @@ fprintf(['\n%s\n' ...
 
 %% Prepare List of Files to be Processed
 Connect_Files   = dir(fullfile(dir_Connect, '*.mat'));  
-nFiles          = length(Connect_Files);
+
+if nargin < 5
+    nFiles          = length(Connect_Files);
+else
+    Connect_Files   = Connect_Files(contains({Connect_Files.name}, Subject_Subset));
+    nFiles          = length(Connect_Files);
+end
 
 %% Directory where file should be saved
 dir_Log         = fullfile(dir_Log, 'Connectivity');
@@ -83,7 +85,7 @@ end
 q = parallel.pool.DataQueue;
 afterEach(q, @(msg) fprintf('%s', msg));
 
-all_results = cell(nFiles, 1);
+% all_results = cell(nFiles, 1);
 
 parfor i_File = 1:nFiles
 
@@ -290,7 +292,9 @@ parfor i_File = 1:nFiles
         end % i_meas           
                 
         
-        all_results{i_File} = results;        
+        % all_results{i_File} = results; 
+        results_filename = fullfile(dir_Connect, strrep(Connect_Files(i_File).name, 'full_connectivity.mat', 'graph_metrics.csv'));
+        writetable(results, results_filename);
         send(q, sprintf('[%d/%d] %s done\n', i_File, nFiles, Connect_Files(i_File).name));
 
     catch e
@@ -315,11 +319,11 @@ parfor i_File = 1:nFiles
     end % try
 end % for i_File
 
-all_results = vertcat(all_results{:});
-
-writetable(all_results, OutputFile);
-
-fprintf("\nGraph Metrics saved to %s\n", OutputFile)
+% all_results = vertcat(all_results{:});
+% 
+% writetable(all_results, OutputFile);
+% 
+% fprintf("\nGraph Metrics saved to %s\n", OutputFile)
 
 fprintf(['\n%s\n' ...
          'Finished Calculating Graph Metrics' ...
