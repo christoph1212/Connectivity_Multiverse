@@ -1,24 +1,24 @@
 # 🚧 Welcome 🚧
 **This Repo is under construction**
 
-This is the github repository for the study [Robustness of EEG Functional Brain Networks Associated With Fluid Intelligence: A Multiverse Analysis of Connectivity and Thresholding Methods](). The preregistration of this study can be found [here]().
+This is the github repository for the study [Robustness of EEG Functional Brain Networks Associated With Fluid Intelligence: A Multiverse Analysis of Connectivity and Thresholding Methods](). The preregistration of this study can be found [here](https://osf.io/gjn9u).
 
 To reproduce the results from the paper, simply clone the repository and request the data from the authors.
 
 ## Dependencies & Credits
 This project uses functions and code from the following third-party toolboxes. Please refer to the respective repositories for license details. Code from the Orthogonal Minimum Spanning Tree repository (OMST; Dimitriadis et al., 2017) is licenced under GPL v3, which requires this project to adopt the same license.
-- Brain Connectivity Toolbox (Rubinov & Sporns, 2010). see [Homepage](https://sites.google.com/site/bctnet/)
-- EEGLab (Delorme & Makeig, 2004). see [Git Repo](https://github.com/sccn/eeglab)
-- Efficiency Cost Optimization (ECO; De Vico Fallani et al., 2017). see [Git Repo](https://github.com/devuci/3n)
+- Brain Connectivity Toolbox (Rubinov & Sporns, 2010), see [Homepage](https://sites.google.com/site/bctnet/)
+- EEGLab (Delorme & Makeig, 2004), see [Git Repo](https://github.com/sccn/eeglab)
+- Efficiency Cost Optimization (ECO; De Vico Fallani et al., 2017), see [Git Repo](https://github.com/devuci/3n)
   - Line 32 in the original `ECOfilter.m` was adapted to ensure integer
-- Orthogonal Minimum Spanning Tree (OMST; Dimitriadis et al., 2017). see [Git Repo](https://github.com/stdimitr/multi-group-analysis-OMST-GDD)
-- SmallWorldNess (Humphries & Gurney, 2008). see [Git Repo](https://github.com/mdhumphries/SmallWorldNess)
-- Wavelet Enhanced ICA (wICA; Castellanos & Makarov, 2006). see [Git Repo](https://github.com/Masoud-Ghodrati/wICA)
+- Orthogonal Minimum Spanning Tree (OMST; Dimitriadis et al., 2017), see [Git Repo](https://github.com/stdimitr/multi-group-analysis-OMST-GDD)
+- SmallWorldNess (Humphries & Gurney, 2008), see [Git Repo](https://github.com/mdhumphries/SmallWorldNess)
+- Wavelet Enhanced ICA (wICA; Castellanos & Makarov, 2006), see [Git Repo](https://github.com/Masoud-Ghodrati/wICA)
 
 ## Analysis Pipeline
-Make sure to stay in the directory of the script you run (e.g. Matlab script $\rightarrow$ Matlab directory).
-1. Navigate to the `/Matlab` folder and open `Main.m`. Adapt the folder paths according to your system. You can change the analysis settings as you like, but leave it unchanged to match with the study. This script automatically preprocesses and epochs the data, calculates connectivity measures, applies thresholding, and calculates graph-theoretic metrics. Depending on your machine and the number of cores, this will take quite a while.
-2. Change to the `/R` folder. Run `XYZ.R` for statistical analysis
+Make sure to stay in the directory of the script you run (e.g., Matlab script $\rightarrow$ Matlab directory).
+1. Navigate to the `/Matlab` folder and open `Main.m`. Adapt the folder paths according to your system. You can change the analysis settings as you like, but leave it unchanged to match with the study. This script automatically preprocesses and epochs the data, calculates connectivity measures, applies thresholding, and calculates graph-theoretic metrics. Depending on your machine and the number of cores, this will take quite a while. A SLURM-compatible version of this analysis can be initiated via `run_analysis_slurm.m`.
+2. Switch to the `/R` folder. Run `Descriptive.R`, `StatisticalAnalysis.R`, and `TestRetest.R` for descriptive, statistical, and test-retest analyses.
 
 ## References
 Castellanos, N. P. & Makarov, V. A. (2006). Recovering EEG brain signals: Artifact suppression with wavelet enhanced independent component analysis. *Journal Of Neuroscience Methods, 158*(2), 300–312. https://doi.org/10.1016/j.jneumeth.2006.05.033
