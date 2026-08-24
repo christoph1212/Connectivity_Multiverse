@@ -4,7 +4,7 @@
 # thresholding methods". It performs descriptive analyses
 #
 # Written by: Christoph Fruehlinger
-# Last edit: July 2026
+# Last edit: August 2026
 
 # ------------------------------------------------------------------------------
 # Setup
@@ -40,7 +40,6 @@ subs <- main_path_data %>%
 # ------------------------------------------------------------------------------
 
 # Add Sociodemographic Data
-
 socio_table = read.csv("Data/SocioDemographics.txt", header = T, 
                        na.strings = c("", "NA"))
 
@@ -100,20 +99,182 @@ prop.table(table(socio_fullSample$Occupancy, useNA = "always"))
 prop.table(table(socio_fullSample$Ethnicity, useNA = "always"))
 prop.table(table(socio_fullSample$Gender, useNA = "always"))
 
+# Percolation thresholds
 percols <- data %>% dplyr::select(starts_with("Percol_Thresh"))
 describe(percols)
 
-IST_full <- read.csv("Data/IST_table.csv", sep = ";", header = T)
+# Load intelligence scores
+IST_full <- read.csv("Data/IST_fulltable.csv", sep = ",", header = T)
 
 IST_full$fluid <- rowSums(IST_full[,2:21])
+
+IST_full$cryst <- rowSums(IST_full[,22:105])
 
 IST_filtered <- IST_full %>%
   filter(ID %in% subs)
 
+# Descriptive analysis of intelligence scores
+describe(IST_filtered)
+
 gf_omega <- omega(IST_filtered[,2:21], plot = F)
 
-message(paste0("\n", "Fluid Intelligence McDonald's Omega:", "\n",
-           "gf: ", round(gf_omega$omega.tot, 3)))
+gc_omega <- omega(IST_filtered[,22:105], plot = F)
+
+message(paste0("\n", "Fluid and Crystallized Intelligence McDonald's Omega:", "\n",
+           "gf: ", round(gf_omega$omega.tot, 3), "\n",
+           "gc: ", round(gc_omega$omega.tot, 3)))
+
+# Load BFI data
+BFI_coding <- read.csv("Data/Personality_Items_coding.csv", sep = ';')
+new_names <- c("ID", BFI_coding$Subskala2)
+BFI_scores <- read.csv("Data/Personality_Items.csv", col.names = new_names)
+BFI_scores <- BFI_scores %>% 
+  filter(ID %in% subs)
+
+## Calculate Facet- and Trait-Means
+# Agreeableness
+BFI_scores$Agreeableness <- BFI_scores %>% 
+  dplyr::select(contains(c("Compassion",
+                           "Respectfulness",
+                           "Trust"))) %>%
+  rowMeans()
+
+BFI_scores$Compassion <- BFI_scores %>% 
+  dplyr::select(contains("Compassion")) %>% 
+  rowMeans()
+
+BFI_scores$Respectfulness <- BFI_scores %>% 
+  dplyr::select(contains("Respectfulness")) %>% 
+  rowMeans()
+
+BFI_scores$Trust <- BFI_scores %>% 
+  dplyr::select(contains("Trust")) %>% 
+  rowMeans()
+
+# Conscientiousness
+BFI_scores$Conscientiousness <- BFI_scores %>% 
+  dplyr::select(contains(c("Organization",
+                           "Productiveness",
+                           "Responsibility"))) %>%
+  rowMeans()
+
+BFI_scores$Organization <- BFI_scores %>% 
+  dplyr::select(contains("Organization")) %>% 
+  rowMeans()
+
+BFI_scores$Productiveness <- BFI_scores %>% 
+  dplyr::select(contains("Productiveness")) %>% 
+  rowMeans()
+
+BFI_scores$Responsibility <- BFI_scores %>% 
+  dplyr::select(contains("Responsibility")) %>% 
+  rowMeans()
+
+# Extraversion
+BFI_scores$Extraversion <- BFI_scores %>% 
+  dplyr::select(contains(c("Sociability",
+                           "Assertiveness",
+                           "EnergyLevel"))) %>%
+  rowMeans()
+
+BFI_scores$Sociability <- BFI_scores %>% 
+  dplyr::select(contains("Sociability")) %>% 
+  rowMeans()
+
+BFI_scores$Assertiveness <- BFI_scores %>% 
+  dplyr::select(contains("Assertiveness")) %>% 
+  rowMeans()
+
+BFI_scores$EnergyLevel <- BFI_scores %>% 
+  dplyr::select(contains("EnergyLevel")) %>% 
+  rowMeans()
+
+# Neuroticism
+BFI_scores$Neuroticism <- BFI_scores %>% 
+  dplyr::select(contains(c("Anxiety",
+                           "Depression",
+                           "EmotionalVolatility"))) %>%
+  rowMeans()
+
+BFI_scores$Anxiety <- BFI_scores %>% 
+  dplyr::select(contains("Anxiety")) %>% 
+  rowMeans()
+
+BFI_scores$Depression <- BFI_scores %>% 
+  dplyr::select(contains("Depression")) %>% 
+  rowMeans()
+
+BFI_scores$EmotionalVolatility <- BFI_scores %>% 
+  dplyr::select(contains("EmotionalVolatility")) %>% 
+  rowMeans()
+
+# Openness
+BFI_scores$Openness <- BFI_scores %>% 
+  dplyr::select(contains(c("AestheticSensitivity",
+                           "IntellectualCuriosity",
+                           "CreativeImagination"))) %>%
+  rowMeans()
+
+BFI_scores$AestheticSensitivity <- BFI_scores %>% 
+  dplyr::select(contains("AestheticSensitivity")) %>% 
+  rowMeans()
+
+BFI_scores$IntellectualCuriosity <- BFI_scores %>% 
+  dplyr::select(contains("IntellectualCuriosity")) %>% 
+  rowMeans()
+
+BFI_scores$CreativeImagination <- BFI_scores %>% 
+  dplyr::select(contains("CreativeImagination")) %>% 
+  rowMeans()
+
+# Descriptive analysis of personality scores
+describe(BFI_scores[,62:81])
+
+agreeableness_omega <- BFI_scores %>% 
+  dplyr::select(contains(c("Compassion",
+                           "Respectfulness",
+                           "Trust"))) %>%
+  omega(plot = F)
+
+conscientiousness_omega <- BFI_scores %>% 
+  dplyr::select(contains(c("Organization",
+                           "Productiveness",
+                           "Responsibility"))) %>%
+  omega(plot = F)
+
+extraversion_omega <- BFI_scores %>% 
+  dplyr::select(contains(c("Sociability",
+                           "Assertiveness",
+                           "EnergyLevel"))) %>%
+  omega(plot = F)
+
+neuroticism_omega <- BFI_scores %>% 
+  dplyr::select(contains(c("Anxiety",
+                           "Depression",
+                           "EmotionalVolatility"))) %>%
+  omega(plot = F)
+
+openness_omega <- BFI_scores %>% 
+  dplyr::select(contains(c("AestheticSensitivity",
+                           "IntellectualCuriosity",
+                           "CreativeImagination"))) %>%
+  omega(plot = F)
+
+message(paste0("\n", "Personality Traits McDonald's Omega:", "\n",
+               "Agreeableness:     ", round(agreeableness_omega$omega.tot, 3), "\n",
+               "Conscientiousness: ", round(conscientiousness_omega$omega.tot, 3), "\n",
+               "Extraversion:      ", round(extraversion_omega$omega.tot, 3), "\n",
+               "Neuroticism:       ", round(neuroticism_omega$omega.tot, 3), "\n",
+               "Openness:          ", round(openness_omega$omega.tot, 3)))
+
+# Bivariate Correlations, Scatter Plots & Histograms
+BFI_scores %>% 
+  dplyr::select(c("Agreeableness",
+                  "Conscientiousness",
+                  "Extraversion",
+                  "Neuroticism",
+                  "Openness")) %>%
+  pairs.panels()
 
 # ------------------------------------------------------------------------------
 # Log File Analysis
