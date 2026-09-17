@@ -14,7 +14,7 @@
 
 # Load packages 
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(tidyverse, cowplot)
+pacman::p_load(tidyverse, cowplot, psych)
 
 options(scipen = 999)
 rm(list = ls())
@@ -56,6 +56,8 @@ featurenames <- c("Clustering Coefficient", "Characteristic Path Length",
 # Correlation Analysis
 # ------------------------------------------------------------------------------
 
+all_correlations <- list()
+
 for (conn in conn_measures) {
   
   for (thresh in threshs) {
@@ -78,11 +80,11 @@ for (conn in conn_measures) {
         # filter
         T1 <- curr_data %>%
           filter(SetCond == main_cond) %>%
-          select(ID, contains(band))
+          dplyr::select(ID, contains(band))
         
         T2 <- curr_data %>%
           filter(SetCond == cond2) %>%
-          select(ID, contains(band))
+          dplyr::select(ID, contains(band))
         
         # sort IDs
         common_ids <- intersect(T1$ID, T2$ID)
@@ -116,25 +118,27 @@ for (conn in conn_measures) {
         
         # save results
         corr_tbl <- tibble(
+          Measure     = conn,
+          Threshold   = thresh, 
           Band        = band,
           Condition1  = main_cond,
           Condition2  = cond2,
           Feature     = feat_vars,
           SpearmanRho = rho_vec,
-          pValue      = p_vec
+          pValue      = p_vec,
+          Comparison  = paste(cond2, band, sep = "_")
         )
         
-        correlations <- bind_rows(
-          correlations,
-          corr_tbl %>%
-            mutate(Comparison = paste(cond2, band, sep = "_"))
-        )
+        correlations <- bind_rows(correlations, corr_tbl)
         
         correlations <- correlations %>%
           mutate(pValue_adj = p.adjust(pValue, method = "holm"))
         
       }
     }
+    
+    list_key <- paste(conn, thresh, sep = "_")
+    all_correlations[[list_key]] <- correlations
     
     # --------------------------------------------------------------------------
     # Plotting
@@ -171,7 +175,9 @@ for (conn in conn_measures) {
                              alpha2 = 'Alpha-2',
                              beta   = 'Beta'))
       
-      limits = c(0, .85)
+      limits = c(0, .9)
+      
+      heatmap_data$SpearmanRho = abs(heatmap_data$SpearmanRho)
       
       heatmap_plot_list[[cond2]] <- ggplot(heatmap_data, aes(x = Feature, 
                                                              y = Band, 
@@ -214,10 +220,14 @@ for (conn in conn_measures) {
   }
 }
 
+all_correlations_df <- bind_rows(all_correlations)
+
+write.csv(all_correlations_df, "Results/all_retest_correlations.csv",
+          row.names = FALSE)
+
 # ------------------------------------------------------------------------------
 # Exploratory ICC Analysis for Main Path and EC Conditions
 # ------------------------------------------------------------------------------
-library(psych)
 
 ec_conds <- c("first_eyes_closed", "second_eyes_closed", "third_eyes_closed")
 
@@ -280,3 +290,6 @@ icc_results <- icc_results %>%
   arrange(measure, band)
 
 print(icc_results, n = 25)
+
+write.csv(icc_results, "Results/ICC.csv", row.names = FALSE)
+
