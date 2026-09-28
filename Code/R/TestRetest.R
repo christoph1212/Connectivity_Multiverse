@@ -236,7 +236,7 @@ trtc_mp %>%
     min_rho = round(min(SpearmanRho), 2),
     max_rho = round(max(SpearmanRho), 2),
   ) %>% 
-  print(n = 5)
+  print(n = 15)
 
 trtc_mp %>%
   group_by(Feature) %>%
@@ -247,7 +247,7 @@ trtc_mp %>%
     max_rho = round(max(SpearmanRho),  2),
   ) %>%
   arrange(desc(mean_rho)) %>% 
-  print(n = 50)
+  print(n = 5)
 
 # ------------------------------------------------------------------------------
 # Exploratory ICC Analysis for Main Path and EC Conditions
