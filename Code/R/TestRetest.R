@@ -225,6 +225,30 @@ all_correlations_df <- bind_rows(all_correlations)
 write.csv(all_correlations_df, "Results/all_retest_correlations.csv",
           row.names = FALSE)
 
+trtc_mp <- all_correlations_df %>% 
+  filter(Measure == "imcoh" & Threshold == "dens")
+
+trtc_mp %>%
+  group_by(Condition2, Feature) %>%
+  summarise(
+    mean_rho = round(mean(SpearmanRho, na.rm = TRUE), 2),
+    sd_rho = round(sd(SpearmanRho, na.rm = TRUE), 2),
+    min_rho = round(min(SpearmanRho), 2),
+    max_rho = round(max(SpearmanRho), 2),
+  ) %>% 
+  print(n = 5)
+
+trtc_mp %>%
+  group_by(Feature) %>%
+  summarise(
+    mean_rho = round(mean(SpearmanRho, na.rm = TRUE), 2),
+    sd_rho = round(sd(SpearmanRho, na.rm = TRUE), 2),
+    min_rho = round(min(SpearmanRho), 2),
+    max_rho = round(max(SpearmanRho),  2),
+  ) %>%
+  arrange(desc(mean_rho)) %>% 
+  print(n = 50)
+
 # ------------------------------------------------------------------------------
 # Exploratory ICC Analysis for Main Path and EC Conditions
 # ------------------------------------------------------------------------------

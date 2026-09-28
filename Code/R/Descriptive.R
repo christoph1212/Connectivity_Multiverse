@@ -114,7 +114,7 @@ IST_filtered <- IST_full %>%
   filter(ID %in% subs)
 
 # Descriptive analysis of intelligence scores
-describe(IST_filtered)
+describe(IST_filtered[,(ncol(IST_filtered)-1):ncol(IST_filtered)])
 
 gf_omega <- omega(IST_filtered[,2:21], plot = F)
 
@@ -268,13 +268,14 @@ message(paste0("\n", "Personality Traits McDonald's Omega:", "\n",
                "Openness:          ", round(openness_omega$omega.tot, 3)))
 
 # Bivariate Correlations, Scatter Plots & Histograms
-BFI_scores %>% 
-  dplyr::select(c("Agreeableness",
-                  "Conscientiousness",
-                  "Extraversion",
-                  "Neuroticism",
-                  "Openness")) %>%
-  pairs.panels()
+bind_cols(
+  IST_filtered %>% 
+    dplyr::select(fluid, cryst),
+  BFI_scores %>% 
+    dplyr::select(Agreeableness, Conscientiousness, Extraversion, Neuroticism,
+      Openness)
+) %>%
+  psych::pairs.panels()
 
 # ------------------------------------------------------------------------------
 # Log File Analysis
