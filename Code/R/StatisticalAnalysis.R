@@ -12,7 +12,7 @@
 
 # Load packages 
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(lme4, tidyverse, future, future.apply, progressr)
+pacman::p_load(lme4, tidyverse, future, future.apply, progressr, ggtext)
 
 options(scipen = 999)
 rm(list = ls())
@@ -168,7 +168,17 @@ run_permutation_test <- function(dep_var, band, measure, data, conn, thresh, k, 
   # Observed model
   fit_obs <- lmer(formula, data = data, REML = TRUE,
                   control = lmerControl(optimizer = "bobyqa"))
-  t_obs   <- get_t_value(fit_obs, col_name)
+  fit_summary <- coef(summary(fit_obs))
+  
+  estimate <- fit_summary[col_name, "Estimate"]
+  se       <- fit_summary[col_name, "Std. Error"]
+  t_obs    <- fit_summary[col_name, "t value"]
+  
+  # Random Effects
+  vc        <- as.data.frame(VarCorr(fit_obs))
+  re_var    <- vc[vc$grp == "Lab",    "vcov"]
+  resid_var <- vc[vc$grp == "Residual", "vcov"]
+  icc       <- re_var / (re_var + resid_var)
   
   # Permutation distribution
   t_perm <- replicate(k, {
@@ -181,7 +191,8 @@ run_permutation_test <- function(dep_var, band, measure, data, conn, thresh, k, 
   p_perm <- mean(abs(t_perm) >= abs(t_obs))
   
   data.frame(dep_var = dep_var, band = band, measure = measure,
-             t_obs = t_obs, p_perm = p_perm)
+             estimate = estimate, se = se, t_obs = t_obs, p_perm = p_perm,
+             re_var = re_var, resid_var = resid_var, icc = icc)
 }
 
 results_list <- list()
@@ -246,6 +257,39 @@ print(results_df, n = nrow(results_df))
 
 results_main <- results_df %>%
   filter(dep_var == "gf_score")
+
+# Main Results Output
+results_main %>%
+  mutate(
+    effect = sprintf("%.2f (%.2f)", estimate, se),
+    t_fmt  = sprintf("%.2f", t_obs),
+    p_fmt  = case_when(
+      p_fdr < .01 ~ sprintf("%.3f*",  p_fdr),
+      p_fdr < .05 ~ sprintf("%.3f†",  p_fdr),
+      TRUE        ~ sprintf("%.3f",   p_fdr)
+    ),
+    cell = sprintf("β = %s, t = %s, p = %s", effect, t_fmt, p_fmt),
+    band = factor(band, levels = c("delta","theta","alpha1","alpha2","beta")),
+    measure = factor(measure, levels = c("cc","pathl","eglob","eloc","smallworld"))
+  ) %>%
+  dplyr::select(band, measure, cell) %>%
+  pivot_wider(names_from = measure, values_from = cell) %>%
+  mutate(band = recode(band,
+                       delta = "Delta", theta = "Theta", alpha1 = "Alpha-1",
+                       alpha2 = "Alpha-2", beta = "Beta")) %>%
+  rename(Band = band, CC = cc, `Path Length` = pathl,
+         `Global Eff.` = eglob, `Local Eff.` = eloc,
+         `Small-Worldness` = smallworld)
+
+# Random Intercept for Research Site
+results_df %>%
+  group_by(dep_var) %>%
+  summarise(
+    icc_mean = mean(icc, na.rm = TRUE),
+    icc_min  = min(icc,  na.rm = TRUE),
+    icc_max  = max(icc,  na.rm = TRUE),
+    .groups = "drop"
+  )
 
 write.csv(results_main, "Results/H1_mainpath_results.csv", row.names = FALSE)
 
@@ -503,11 +547,11 @@ band_labels <- c(
 )
 
 measure_labels <- c(
-  "cc"         = "Clustering Coefficient",
-  "pathl"      = "Path Length",
-  "eglob"      = "Global Efficiency",
-  "eloc"       = "Local Efficiency",
-  "smallworld" = "Small World Index"
+  "cc"         = "*C*",
+  "pathl"      = "*L*",
+  "eglob"      = "*E*<sub>global</sub>",
+  "eloc"       = "*E*<sub>local</sub>",
+  "smallworld" = "σ"
 )
 
 dep_var_labels <- c(
@@ -520,7 +564,7 @@ dep_var_labels <- c(
   "Openness"        = "Openness"
 )
 
-main_path_label <- "Main path (ImCoh • Density-based Thresholding)"
+main_path_label <- "Main Path (ImCoh • Density-based Thresholding)"
 
 n_specs_full <- length(conn_measures) * length(thresh_methods)
 
@@ -566,7 +610,7 @@ for (dep_var in dep_vars) {
                color = col_zero, linewidth = 0.4) +
     scale_color_manual(
       values = c("TRUE" = col_main, "FALSE" = col_other),
-      labels = c("TRUE" = main_path_label, "FALSE" = "Other specifications")
+      labels = c("TRUE" = main_path_label, "FALSE" = "Other Specifications")
     ) +
     facet_grid(
       rows     = vars(band),
@@ -578,11 +622,12 @@ for (dep_var in dep_vars) {
       x        = "Specifications (sorted by β)",
       y        = "Standardized β",
       color    = NULL,
-      subtitle = dep_var_labels[dep_var]
+      #subtitle = dep_var_labels[dep_var]
     ) +
     theme_minimal(base_size = 16) +
     theme(
-      strip.text          = element_text(size = 16, face = "bold"),
+      strip.text.x        = element_markdown(face = "bold"),
+      strip.text.y        = element_text(size = 16, face = "bold"),
       legend.position     = "bottom",
       panel.grid.minor    = element_blank(),
       panel.grid.major.x  = element_blank(),
